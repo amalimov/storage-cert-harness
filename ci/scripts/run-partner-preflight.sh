@@ -65,7 +65,7 @@ validate_partner_cluster_connectivity "${kubeconfig}" "${plan_path}"
 if [[ "$(basename "${plan_path}")" == "level3-customer-no-load-80.yaml" ]]; then
 	validate_partner_level3_no_load_plan "${plan_path}"
 fi
-partner_validate_far_config "${plan_path}" "${repo_root}"
+partner_validate_far_config "${plan_path}" "${repo_root}" "${kubeconfig}"
 partner_pull_image "${image}"
 
 echo "==> harness preflight (container)"

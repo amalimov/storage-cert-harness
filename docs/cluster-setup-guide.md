@@ -153,7 +153,10 @@ See [HA Testing — Node Remediation](cluster-requirements.md#ha-testing--node-r
 in the cluster requirements for operator choices and guidance. The following
 example covers **TR-VIRT-007 in `far-operator` mode using IPMI**. Other fence
 agents require different parameters; follow your agent's and FAR operator's
-documentation rather than reusing the IPMI options unchanged.
+documentation rather than reusing the IPMI options unchanged. The partner
+helpers check the target node and basic FAR manifest fields for any agent;
+`fence_ipmilan` also requires a Secret reference and a target-keyed `--ip`
+address. Other agents' options are left to the provider to validate.
 
 1. Install the Fence Agents Remediation (FAR) operator and verify that its CSV
    is Succeeded and its CRD is installed:
@@ -207,18 +210,24 @@ documentation rather than reusing the IPMI options unchanged.
    ```bash
    export FAR_CONFIG=/local/path/far-config.json
    make partner-preflight
-   # After the load-80 run has produced a report:
    make partner-cert-no-load-80
    ```
 
-   The helper scripts verify the file and its `metadata.name` before pulling
-   the image, then mount it **read-only** at `/far-config.json` inside both
+   The helper scripts verify the file, its `metadata.name`, and that the target
+   is a Ready, schedulable worker in the Kubernetes API before pulling the
+   image, then mount it **read-only** at `/far-config.json` inside both
    containers. Keep the host file unchanged from validation through completion
    of the run; if you edit or replace it, rerun preflight before certification.
    A read-only container mount does not prevent edits on the host. Examples
    are never mounted automatically. For a manual `podman run`, include
    `-v /local/path/far-config.json:/far-config.json:ro,Z`;
    the plan path alone cannot make a host file accessible in the container.
+   Run partner preflight and certification containers **sequentially** when
+   they share a FAR config: their private SELinux `:Z` mounts are not designed
+   for concurrent use. Never run two TR-VIRT-007 cycles at once; both could
+   fence/reboot the same node. The helper scripts do not enforce this rule.
+   This Kubernetes check does not test BMC reachability or credentials; verify
+   those separately through your fencing provider without triggering a reboot.
 
    Confirm the target is a Ready worker, the Secret and CRD are present, and
    the test account can create FAR resources before running the HA plan:

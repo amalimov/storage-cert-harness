@@ -261,13 +261,10 @@ validate_partner_level3_no_load_plan() {
 	echo "validation passed: Level-3 no-load plan overrides are customized (no placeholders; TR-VIRT-010 params set)"
 }
 
-# Bind the operator-supplied FAR manifest only when the selected plan actually
-# runs TR-VIRT-007 in far-operator mode. Examples are never run directly.
-# Call before pulling an image or preparing result directories. The validated
-# mount is shared by the preflight and certification container paths.
+# Validate and mount the FAR manifest only when the selected plan needs it.
 partner_validate_far_config() {
-	local plan_path="$1" repo_root="$2" yq_bin selected mode target container_path source
-	local manifest_node manifest_kind manifest_namespace secret_name bmc_address
+	local plan_path="$1" repo_root="$2" kubeconfig="$3" yq_bin selected mode target container_path source
+	local manifest_node manifest_kind manifest_namespace manifest_agent secret_name bmc_address node_json ready worker schedulable
 	PARTNER_FAR_MOUNT=""
 	yq_bin="$(partner_resolve_yq || true)"
 	[[ -n "${yq_bin}" && -x "${yq_bin}" ]] || {
@@ -304,10 +301,36 @@ partner_validate_far_config() {
 	fi
 	manifest_kind="$("${yq_bin}" e -r '.kind // ""' "${source}")"
 	manifest_namespace="$("${yq_bin}" e -r '.metadata.namespace // ""' "${source}")"
-	secret_name="$("${yq_bin}" e -r '.spec.sharedSecretName // ""' "${source}")"
-	bmc_address="$(PARTNER_FAR_NODE="${target}" "${yq_bin}" e -r '.spec.nodeparameters."--ip".[strenv(PARTNER_FAR_NODE)] // ""' "${source}")"
-	if [[ "${manifest_kind}" != "FenceAgentsRemediation" || -z "${manifest_namespace}" || -z "${secret_name}" || -z "${bmc_address}" ]]; then
-		echo "error: FAR_CONFIG must have kind FenceAgentsRemediation, metadata.namespace, spec.sharedSecretName and a --ip entry keyed by ${target}" >&2
+	manifest_agent="$("${yq_bin}" e -r '.spec.agent // ""' "${source}")"
+	if [[ "${manifest_kind}" != "FenceAgentsRemediation" || -z "${manifest_namespace}" || -z "${manifest_agent}" ]]; then
+		echo "error: FAR_CONFIG must have kind FenceAgentsRemediation, metadata.namespace and spec.agent" >&2
+		return 1
+	fi
+	if [[ "${manifest_agent}" == "fence_ipmilan" ]]; then
+		secret_name="$("${yq_bin}" e -r '.spec.sharedSecretName // ""' "${source}")"
+		bmc_address="$(PARTNER_FAR_NODE="${target}" "${yq_bin}" e -r '.spec.nodeparameters."--ip".[strenv(PARTNER_FAR_NODE)] // ""' "${source}")"
+		if [[ -z "${secret_name}" || -z "${bmc_address}" ]]; then
+			echo "error: fence_ipmilan FAR_CONFIG requires spec.sharedSecretName and a --ip entry keyed by ${target}" >&2
+			return 1
+		fi
+	fi
+	if ! command -v oc >/dev/null 2>&1; then
+		echo "error: oc is required to verify the FAR target node" >&2
+		return 1
+	fi
+	local -a oc_args=(--kubeconfig "${kubeconfig}")
+	if [[ "${KUBECTL_INSECURE_SKIP_TLS_VERIFY:-false}" == "true" ]]; then
+		oc_args+=(--insecure-skip-tls-verify=true)
+	fi
+	if ! node_json="$(oc "${oc_args[@]}" get node "${target}" -o json 2>/dev/null)"; then
+		echo "error: TR-VIRT-007 target node '${target}' does not exist or is not accessible" >&2
+		return 1
+	fi
+	ready="$(printf '%s' "${node_json}" | "${yq_bin}" e -r '.status.conditions[] | select(.type == "Ready") | .status' -)"
+	worker="$(printf '%s' "${node_json}" | "${yq_bin}" e -r '.metadata.labels | has("node-role.kubernetes.io/worker")' -)"
+	schedulable="$(printf '%s' "${node_json}" | "${yq_bin}" e -r '.spec.unschedulable // false' -)"
+	if [[ "${ready}" != "True" || "${worker}" != "true" || "${schedulable}" != "false" ]]; then
+		echo "error: TR-VIRT-007 target '${target}' must be a Ready, schedulable worker" >&2
 		return 1
 	fi
 	PARTNER_FAR_MOUNT="$(realpath -- "${source}"):${container_path}:ro,Z"

@@ -512,7 +512,10 @@ The partner preflight and no-load scripts verify that this file is readable and
 targets the same node as the plan, then mount it read-only at `/far-config.json`
 inside the container. If `FAR_CONFIG` is unset, the scripts look for
 `./far-config.json` at the repository root. The file is required for the default
-no-load plan (which selects TR-VIRT-007); the load-80 plan does not use it.
+no-load plan (which selects TR-VIRT-007). Do not run partner containers sharing
+a FAR config concurrently or start two TR-VIRT-007 runs at once: the mounts
+use private SELinux labels and both runs could fence the same worker. The
+scripts do not enforce serialization.
 
 ### Example
 
