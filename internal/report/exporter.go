@@ -31,9 +31,14 @@ type JUnitExporter struct {
 	// HardwareAtRoot emits environment facts as <testsuites>-level <properties>
 	// instead of an "environment-hardware" testsuite. Less portable; off by default.
 	HardwareAtRoot bool
+	// FlatVerdicts emits a single suite containing only graded verdicts.
+	FlatVerdicts bool
 }
 
 func (JUnitExporter) Format() string { return "junit" }
 func (e JUnitExporter) Export(w io.Writer, r core.Report) error {
+	if e.FlatVerdicts {
+		return writeFlatJUnit(w, r)
+	}
 	return writeJUnit(w, r, e.HardwareAtRoot)
 }
