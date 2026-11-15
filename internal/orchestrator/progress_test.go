@@ -9,6 +9,17 @@ import (
 	"github.com/openshift-storage-cert/storage-cert-harness/internal/core"
 )
 
+func TestProgressKeepsCollidingLabelsSeparate(t *testing.T) {
+	trs := []core.TestRequirement{{ID: "TR-A [small]"}, {ID: "TR-A", Variant: "small"}}
+	p := newProgressTracker(nil, trs)
+	p.complete(trs[0], core.OutcomePass)
+	p.complete(trs[1], core.OutcomeFail)
+	completed, total := p.countsLocked()
+	if completed != 2 || total != 2 || len(p.outcomes) != 2 {
+		t.Fatalf("executions collided: completed=%d total=%d outcomes=%v", completed, total, p.outcomes)
+	}
+}
+
 func TestProgressLogsQueuedAndFinalLists(t *testing.T) {
 	var log bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&log, &slog.HandlerOptions{Level: slog.LevelDebug}))

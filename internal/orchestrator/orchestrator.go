@@ -67,10 +67,10 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 	if partKind == "" {
 		partKind = "initial"
 	}
-	executionStates := make(map[string]core.RunExecution, len(selected))
+	executionStates := make(map[core.ExecutionKey]core.RunExecution, len(selected))
 	for _, tr := range selected {
-		label := core.ExecutionLabel(tr.ID, tr.Variant)
-		executionStates[label] = core.RunExecution{TR: tr.ID, Variant: tr.Variant, Scenario: cfg.Scenario, State: core.ExecutionQueued}
+		key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant, Scenario: cfg.Scenario}
+		executionStates[key] = core.RunExecution{TR: tr.ID, Variant: tr.Variant, Scenario: cfg.Scenario, State: core.ExecutionQueued}
 	}
 	incidents := []core.Incident{}
 
@@ -144,10 +144,10 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 	rc.SetStage = func(stage string, trs []core.TestRequirement) {
 		stateMu.Lock()
 		for _, tr := range trs {
-			label := core.ExecutionLabel(tr.ID, tr.Variant)
-			execution := executionStates[label]
+			key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant, Scenario: cfg.Scenario}
+			execution := executionStates[key]
 			execution.Stage = stage
-			executionStates[label] = execution
+			executionStates[key] = execution
 		}
 		stateMu.Unlock()
 		checkpoint(core.RunStatusRunning)
@@ -171,10 +171,10 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 		if len(rel) > 0 {
 			stateMu.Lock()
 			for _, tr := range trs {
-				label := core.ExecutionLabel(tr.ID, tr.Variant)
-				execution := executionStates[label]
+				key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant, Scenario: cfg.Scenario}
+				execution := executionStates[key]
 				execution.Artifacts = append(execution.Artifacts, rel...)
-				executionStates[label] = execution
+				executionStates[key] = execution
 			}
 			stateMu.Unlock()
 			// Persist immediately: a run that stops between collection and the
@@ -186,9 +186,10 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 			externalArtifactRecorder(trs, refs)
 		}
 	}
-	progress.onStateChange = func(label string, state progressState, outcome core.Outcome) {
+	progress.onStateChange = func(key core.ExecutionKey, state progressState, outcome core.Outcome) {
+		key.Scenario = cfg.Scenario
 		stateMu.Lock()
-		execution := executionStates[label]
+		execution := executionStates[key]
 		switch state {
 		case progressRunning:
 			execution.State = core.ExecutionRunning
@@ -204,7 +205,7 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 			execution.Reason = "run ended before execution completed"
 			execution.EndedAt = time.Now().UTC().Format(time.RFC3339)
 		}
-		executionStates[label] = execution
+		executionStates[key] = execution
 		stateMu.Unlock()
 		if state == progressRunning {
 			checkpoint(core.RunStatusRunning)
@@ -301,14 +302,14 @@ func Run(ctx context.Context, cfg config.Config, trs []core.TestRequirement, pro
 	}
 	stateMu.Lock()
 	allTerminal := true
-	for label, execution := range executionStates {
+	for key, execution := range executionStates {
 		if execution.State == core.ExecutionRunning {
 			execution.State = core.ExecutionAborted
 			execution.Reason = "run ended before execution completed"
 			execution.EndedAt = time.Now().UTC().Format(time.RFC3339)
-			executionStates[label] = execution
+			executionStates[key] = execution
 		}
-		if executionStates[label].State != core.ExecutionCompleted && executionStates[label].State != core.ExecutionAborted {
+		if executionStates[key].State != core.ExecutionCompleted && executionStates[key].State != core.ExecutionAborted {
 			allTerminal = false
 		}
 	}
@@ -391,14 +392,14 @@ func ResumeExecutions(selected []core.TestRequirement, prior core.Report, scenar
 // retry policy. Scenario is part of the identity: a load80 execution must not
 // satisfy a non-load80 continuation.
 func ResumeExecutionsWithOptions(selected []core.TestRequirement, prior core.Report, scenario string, retryFailed bool) []core.TestRequirement {
-	completed := map[string]bool{}
-	failed := map[string]bool{}
-	knownExecutions := map[string]bool{}
+	completed := map[core.ExecutionKey]bool{}
+	failed := map[core.ExecutionKey]bool{}
+	knownExecutions := map[core.ExecutionKey]bool{}
 	for _, execution := range prior.Executions {
 		if execution.Scenario != scenario {
 			continue
 		}
-		key := executionKey(execution.TR, execution.Variant, execution.Scenario)
+		key := core.ExecutionKey{TR: execution.TR, Variant: execution.Variant, Scenario: execution.Scenario}
 		knownExecutions[key] = true
 		if execution.State == core.ExecutionCompleted {
 			completed[key] = true
@@ -415,7 +416,7 @@ func ResumeExecutionsWithOptions(selected []core.TestRequirement, prior core.Rep
 		if verdict.Scenario != scenario {
 			continue
 		}
-		key := executionKey(verdict.TR, verdict.Variant, verdict.Scenario)
+		key := core.ExecutionKey{TR: verdict.TR, Variant: verdict.Variant, Scenario: verdict.Scenario}
 		// New reports persist execution state for every selected item. An
 		// aborted/queued/running execution may already have cancellation
 		// verdicts, but it must remain resumable. Use legacy verdict fallback
@@ -432,17 +433,13 @@ func ResumeExecutionsWithOptions(selected []core.TestRequirement, prior core.Rep
 
 	out := make([]core.TestRequirement, 0, len(selected))
 	for _, tr := range selected {
-		key := executionKey(tr.ID, tr.Variant, scenario)
+		key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant, Scenario: scenario}
 		skip := completed[key] && (!retryFailed || !failed[key])
 		if !skip {
 			out = append(out, tr)
 		}
 	}
 	return out
-}
-
-func executionKey(tr, variant, scenario string) string {
-	return tr + "\x00" + variant + "\x00" + scenario
 }
 
 // missingRequiredParams returns the names of a TR's required params that have no

@@ -20,6 +20,13 @@ const (
 	OutcomeSkip  Outcome = "skip"
 )
 
+// ExecutionKey identifies one test requirement execution in a run scenario.
+type ExecutionKey struct {
+	TR       string
+	Variant  string
+	Scenario string
+}
+
 // RunStatus describes the lifecycle state of the complete harness run.
 type RunStatus string
 

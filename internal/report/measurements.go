@@ -12,10 +12,10 @@ import (
 // A bare name includes all its percentiles. Missing extras are informational;
 // grading always uses the full parser results independently of this selection.
 func SelectMeasurements(trs []core.TestRequirement, measurements []core.Measurement, extras []string, perTR map[string][]string) ([]core.Measurement, []string) {
-	selected := map[string][]core.SLA{}
-	requested := map[string]map[string]bool{}
+	selected := map[core.ExecutionKey][]core.SLA{}
+	requested := map[core.ExecutionKey]map[string]bool{}
 	for _, tr := range trs {
-		key := core.ExecutionLabel(tr.ID, tr.Variant)
+		key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant}
 		selected[key] = slices.Clone(tr.SLAs)
 		requested[key] = map[string]bool{}
 		for _, list := range [][]string{extras, perTR[tr.ID]} {
@@ -28,7 +28,7 @@ func SelectMeasurements(trs []core.TestRequirement, measurements []core.Measurem
 	}
 	var out []core.Measurement
 	for _, m := range measurements {
-		key := core.ExecutionLabel(m.TR, m.Variant)
+		key := core.ExecutionKey{TR: m.TR, Variant: m.Variant}
 		for selector := range requested[key] {
 			name, percentile, _ := strings.Cut(selector, "@")
 			if m.Name == name && (percentile == "" || m.Percentile == percentile) {
@@ -43,10 +43,10 @@ func SelectMeasurements(trs []core.TestRequirement, measurements []core.Measurem
 		}
 	}
 	var warnings []string
-	for tr, selectors := range requested {
+	for key, selectors := range requested {
 		for selector, found := range selectors {
 			if !found {
-				warnings = append(warnings, fmt.Sprintf("TR %s: requested report metric %q was not produced", tr, selector))
+				warnings = append(warnings, fmt.Sprintf("TR %s: requested report metric %q was not produced", core.ExecutionLabel(key.TR, key.Variant), selector))
 			}
 		}
 	}
