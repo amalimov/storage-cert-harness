@@ -213,8 +213,11 @@ documentation rather than reusing the IPMI options unchanged.
 
    The helper scripts verify the file and its `metadata.name` before pulling
    the image, then mount it **read-only** at `/far-config.json` inside both
-   containers. Examples are never mounted automatically. For a manual
-   `podman run`, include `-v /local/path/far-config.json:/far-config.json:ro,Z`;
+   containers. Keep the host file unchanged from validation through completion
+   of the run; if you edit or replace it, rerun preflight before certification.
+   A read-only container mount does not prevent edits on the host. Examples
+   are never mounted automatically. For a manual `podman run`, include
+   `-v /local/path/far-config.json:/far-config.json:ro,Z`;
    the plan path alone cannot make a host file accessible in the container.
 
    Confirm the target is a Ready worker, the Secret and CRD are present, and

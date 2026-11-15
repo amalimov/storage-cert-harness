@@ -6,7 +6,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # shellcheck source=../partner-harness-common.sh
 source "${repo_root}/ci/scripts/partner-harness-common.sh"
 
-tmp="$(mktemp -d /tmp/opencode/partner-far-config.XXXXXXXX)"
+tmp="$(mktemp -d)"
 trap 'rm -rf -- "${tmp}"' EXIT
 cp "${repo_root}/examples/far-config.example.json" "${tmp}/far-config.json"
 printf 'kubeconfig\n' > "${tmp}/kubeconfig"
