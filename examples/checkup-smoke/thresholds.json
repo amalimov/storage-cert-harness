@@ -1,0 +1,8 @@
+{
+  "schema_version": "2.0",
+  "provenance": {"kb_git_commit": "checkup-smoke-fixture", "kb_commit_date": "2026-01-01", "generated_date": "2026-01-01"},
+  "test_requirements": [
+    {"id": "EX-006", "sla": [{"metric": "sample_value", "type": "count", "operator": "<", "value": 10, "unit": "count"}]},
+    {"id": "EX-003", "sla": [{"metric": "read_throughput", "type": "throughput", "operator": ">=", "value": 1000, "unit": "MiB/s"}]}
+  ]
+}
