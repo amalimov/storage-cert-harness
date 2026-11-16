@@ -7,7 +7,9 @@ func mergeStorageSelections(base, next []core.StorageSelection) []core.StorageSe
 	for _, selection := range next {
 		found := false
 		for i, old := range out {
-			if old.TR == selection.TR && old.Variant == selection.Variant && old.Scenario == selection.Scenario {
+			oldKey := core.ExecutionKey{TR: old.TR, Variant: old.Variant, Scenario: old.Scenario}
+			key := core.ExecutionKey{TR: selection.TR, Variant: selection.Variant, Scenario: selection.Scenario}
+			if oldKey == key {
 				out[i] = selection
 				found = true
 				break

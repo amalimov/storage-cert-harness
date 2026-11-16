@@ -12,12 +12,12 @@ import (
 // individual SLA/check verdicts are intentionally not counted separately.
 type progressTracker struct {
 	logger        *slog.Logger
-	onStateChange func(label string, state progressState, outcome core.Outcome)
+	onStateChange func(key core.ExecutionKey, state progressState, outcome core.Outcome)
 
 	mu       sync.Mutex
-	order    []string
-	state    map[string]progressState
-	outcomes map[string]core.Outcome
+	order    []core.ExecutionKey
+	state    map[core.ExecutionKey]progressState
+	outcomes map[core.ExecutionKey]core.Outcome
 }
 
 type progressState uint8
@@ -32,21 +32,21 @@ const (
 func newProgressTracker(logger *slog.Logger, trs []core.TestRequirement) *progressTracker {
 	p := &progressTracker{
 		logger:   logger,
-		order:    make([]string, 0, len(trs)),
-		state:    make(map[string]progressState, len(trs)),
-		outcomes: make(map[string]core.Outcome, len(trs)),
+		order:    make([]core.ExecutionKey, 0, len(trs)),
+		state:    make(map[core.ExecutionKey]progressState, len(trs)),
+		outcomes: make(map[core.ExecutionKey]core.Outcome, len(trs)),
 	}
 	for _, tr := range trs {
-		label := core.ExecutionLabel(tr.ID, tr.Variant)
-		p.order = append(p.order, label)
-		p.state[label] = progressQueued
+		key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant}
+		p.order = append(p.order, key)
+		p.state[key] = progressQueued
 	}
 	p.loggerInfo("plan progress",
 		"status", "started",
 		"completed", 0,
 		"total", len(p.order),
 		"remaining", len(p.order),
-		"queued", append([]string(nil), p.order...),
+		"queued", progressLabels(p.order),
 	)
 	return p
 }
@@ -55,13 +55,14 @@ func (p *progressTracker) start(tr core.TestRequirement) {
 	if p == nil {
 		return
 	}
+	key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant}
 	label := core.ExecutionLabel(tr.ID, tr.Variant)
 	p.mu.Lock()
-	if p.state[label] != progressQueued {
+	if p.state[key] != progressQueued {
 		p.mu.Unlock()
 		return
 	}
-	p.state[label] = progressRunning
+	p.state[key] = progressRunning
 	completed, total := p.countsLocked()
 	running, queued := p.listsLocked(progressRunning, progressQueued)
 	p.loggerDebug("plan progress detail",
@@ -75,7 +76,7 @@ func (p *progressTracker) start(tr core.TestRequirement) {
 	)
 	p.mu.Unlock()
 	if p.onStateChange != nil {
-		p.onStateChange(label, progressRunning, "")
+		p.onStateChange(key, progressRunning, "")
 	}
 }
 
@@ -83,14 +84,15 @@ func (p *progressTracker) complete(tr core.TestRequirement, outcome core.Outcome
 	if p == nil {
 		return
 	}
+	key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant}
 	label := core.ExecutionLabel(tr.ID, tr.Variant)
 	p.mu.Lock()
-	if p.state[label] == progressComplete {
+	if p.state[key] == progressComplete {
 		p.mu.Unlock()
 		return
 	}
-	p.state[label] = progressComplete
-	p.outcomes[label] = outcome
+	p.state[key] = progressComplete
+	p.outcomes[key] = outcome
 	completed, total := p.countsLocked()
 	running, queued := p.listsLocked(progressRunning, progressQueued)
 	passed, failed, errors, skipped := p.outcomeListsLocked()
@@ -122,7 +124,7 @@ func (p *progressTracker) complete(tr core.TestRequirement, outcome core.Outcome
 	}
 	p.mu.Unlock()
 	if p.onStateChange != nil {
-		p.onStateChange(label, progressComplete, outcome)
+		p.onStateChange(key, progressComplete, outcome)
 	}
 }
 
@@ -133,14 +135,15 @@ func (p *progressTracker) abort(tr core.TestRequirement, outcome core.Outcome) {
 	if p == nil {
 		return
 	}
+	key := core.ExecutionKey{TR: tr.ID, Variant: tr.Variant}
 	label := core.ExecutionLabel(tr.ID, tr.Variant)
 	p.mu.Lock()
-	if p.state[label] == progressComplete || p.state[label] == progressAborted {
+	if p.state[key] == progressComplete || p.state[key] == progressAborted {
 		p.mu.Unlock()
 		return
 	}
-	p.state[label] = progressAborted
-	p.outcomes[label] = outcome
+	p.state[key] = progressAborted
+	p.outcomes[key] = outcome
 	completed, total := p.countsLocked()
 	running, queued := p.listsLocked(progressRunning, progressQueued)
 	p.loggerInfo("test progress",
@@ -158,14 +161,14 @@ func (p *progressTracker) abort(tr core.TestRequirement, outcome core.Outcome) {
 	)
 	p.mu.Unlock()
 	if p.onStateChange != nil {
-		p.onStateChange(label, progressAborted, outcome)
+		p.onStateChange(key, progressAborted, outcome)
 	}
 }
 
 func (p *progressTracker) countsLocked() (completed, total int) {
 	total = len(p.order)
-	for _, label := range p.order {
-		if p.state[label] == progressComplete {
+	for _, key := range p.order {
+		if p.state[key] == progressComplete {
 			completed++
 		}
 	}
@@ -173,19 +176,19 @@ func (p *progressTracker) countsLocked() (completed, total int) {
 }
 
 func (p *progressTracker) listsLocked(wanted ...progressState) (running, queued []string) {
-	for _, label := range p.order {
-		switch p.state[label] {
+	for _, key := range p.order {
+		switch p.state[key] {
 		case progressRunning:
 			for _, state := range wanted {
 				if state == progressRunning {
-					running = append(running, label)
+					running = append(running, core.ExecutionLabel(key.TR, key.Variant))
 					break
 				}
 			}
 		case progressQueued:
 			for _, state := range wanted {
 				if state == progressQueued {
-					queued = append(queued, label)
+					queued = append(queued, core.ExecutionLabel(key.TR, key.Variant))
 					break
 				}
 			}
@@ -195,19 +198,27 @@ func (p *progressTracker) listsLocked(wanted ...progressState) (running, queued 
 }
 
 func (p *progressTracker) outcomeListsLocked() (passed, failed, errors, skipped []string) {
-	for _, label := range p.order {
-		switch p.outcomes[label] {
+	for _, key := range p.order {
+		switch p.outcomes[key] {
 		case core.OutcomePass:
-			passed = append(passed, label)
+			passed = append(passed, core.ExecutionLabel(key.TR, key.Variant))
 		case core.OutcomeFail:
-			failed = append(failed, label)
+			failed = append(failed, core.ExecutionLabel(key.TR, key.Variant))
 		case core.OutcomeError:
-			errors = append(errors, label)
+			errors = append(errors, core.ExecutionLabel(key.TR, key.Variant))
 		case core.OutcomeSkip:
-			skipped = append(skipped, label)
+			skipped = append(skipped, core.ExecutionLabel(key.TR, key.Variant))
 		}
 	}
 	return passed, failed, errors, skipped
+}
+
+func progressLabels(keys []core.ExecutionKey) []string {
+	labels := make([]string, 0, len(keys))
+	for _, key := range keys {
+		labels = append(labels, core.ExecutionLabel(key.TR, key.Variant))
+	}
+	return labels
 }
 
 func (p *progressTracker) loggerInfo(msg string, args ...any) {

@@ -297,9 +297,9 @@ func mergeComposition(base, next core.Report) core.RunComposition {
 }
 
 func mergeExecutions(base, next []core.RunExecution) []core.RunExecution {
-	byKey := map[string]core.RunExecution{}
+	byKey := map[core.ExecutionKey]core.RunExecution{}
 	for _, e := range append(append([]core.RunExecution{}, base...), next...) {
-		byKey[e.TR+"\x00"+e.Variant+"\x00"+e.Scenario] = e
+		byKey[core.ExecutionKey{TR: e.TR, Variant: e.Variant, Scenario: e.Scenario}] = e
 	}
 	out := make([]core.RunExecution, 0, len(byKey))
 	for _, e := range byKey {
@@ -335,10 +335,14 @@ func mergeIncidents(base, next []core.Incident) []core.Incident {
 }
 
 func dedupeVerdicts(vs []core.Verdict) []core.Verdict {
-	seen := make(map[string]int, len(vs))
+	type verdictKey struct {
+		core.ExecutionKey
+		Item string
+	}
+	seen := make(map[verdictKey]int, len(vs))
 	out := make([]core.Verdict, 0, len(vs))
 	for _, v := range vs {
-		key := v.TR + "\x00" + v.Variant + "\x00" + v.Item + "\x00" + v.Scenario
+		key := verdictKey{ExecutionKey: core.ExecutionKey{TR: v.TR, Variant: v.Variant, Scenario: v.Scenario}, Item: v.Item}
 		if i, ok := seen[key]; ok {
 			out[i] = v // later run wins for the same scenario
 			continue
@@ -362,10 +366,15 @@ func dedupeVerdicts(vs []core.Verdict) []core.Verdict {
 }
 
 func dedupeMeasurements(ms []core.Measurement) []core.Measurement {
-	seen := make(map[string]int, len(ms))
+	type measurementKey struct {
+		core.ExecutionKey
+		Name       string
+		Percentile string
+	}
+	seen := make(map[measurementKey]int, len(ms))
 	out := make([]core.Measurement, 0, len(ms))
 	for _, m := range ms {
-		key := m.TR + "\x00" + m.Variant + "\x00" + m.Name + "\x00" + m.Percentile + "\x00" + m.Scenario
+		key := measurementKey{ExecutionKey: core.ExecutionKey{TR: m.TR, Variant: m.Variant, Scenario: m.Scenario}, Name: m.Name, Percentile: m.Percentile}
 		if i, ok := seen[key]; ok {
 			out[i] = m
 			continue

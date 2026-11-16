@@ -72,10 +72,10 @@ func writeJUnit(w io.Writer, r core.Report, hardwareAtRoot bool) error {
 	// Artifacts are recorded per execution; JUnit groups by partner level and
 	// carries the execution identity on each case's classname, so the paths ride
 	// along on every item of that execution rather than on a suite of their own.
-	artifactsByExecution := map[string]string{}
+	artifactsByExecution := map[core.ExecutionKey]string{}
 	for _, e := range r.Executions {
 		if len(e.Artifacts) > 0 {
-			artifactsByExecution[core.ExecutionLabel(e.TR, e.Variant)] = join(e.Artifacts)
+			artifactsByExecution[core.ExecutionKey{TR: e.TR, Variant: e.Variant, Scenario: e.Scenario}] = join(e.Artifacts)
 		}
 	}
 
@@ -111,7 +111,7 @@ func writeJUnit(w io.Writer, r core.Report, hardwareAtRoot bool) error {
 			if v.Actual != "" {
 				props.add("actual", v.Actual)
 			}
-			if a := artifactsByExecution[core.ExecutionLabel(v.TR, v.Variant)]; a != "" {
+			if a := artifactsByExecution[core.ExecutionKey{TR: v.TR, Variant: v.Variant, Scenario: v.Scenario}]; a != "" {
 				props.add("artifacts", a)
 			}
 			if len(props.Property) > 0 {
