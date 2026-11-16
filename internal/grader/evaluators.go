@@ -106,9 +106,7 @@ func gradeChecks(tr core.TestRequirement, res core.TestResult) []core.Verdict {
 			continue
 		}
 		outcome := native
-		switch native {
-		case core.OutcomePass, core.OutcomeFail, core.OutcomeSkip, core.OutcomeError:
-		default:
+		if !native.Valid() {
 			outcome = core.OutcomeError
 		}
 		out = append(out, core.Verdict{TR: tr.ID, Item: item, Outcome: outcome,

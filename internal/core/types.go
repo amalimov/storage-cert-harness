@@ -20,6 +20,16 @@ const (
 	OutcomeSkip  Outcome = "skip"
 )
 
+// Valid reports whether the outcome is one of the defined verdict outcomes.
+func (o Outcome) Valid() bool {
+	switch o {
+	case OutcomePass, OutcomeFail, OutcomeError, OutcomeSkip:
+		return true
+	default:
+		return false
+	}
+}
+
 // ExecutionKey identifies one test requirement execution in a run scenario.
 type ExecutionKey struct {
 	TR       string

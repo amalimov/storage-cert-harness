@@ -196,3 +196,24 @@ func TestGradeCheckMissingOutcomeErrors(t *testing.T) {
 		t.Errorf("unexpected missing check reason: %q", v.Reason)
 	}
 }
+
+func TestGradeCheckOutcomes(t *testing.T) {
+	tr := core.TestRequirement{ID: "TR-1", Checks: []core.Check{{ID: "cap", Kind: core.CheckCapability, Status: core.StatusDefined}}}
+	for _, tc := range []struct {
+		input core.Outcome
+		want  core.Outcome
+	}{
+		{core.OutcomePass, core.OutcomePass},
+		{core.OutcomeFail, core.OutcomeFail},
+		{core.OutcomeError, core.OutcomeError},
+		{core.OutcomeSkip, core.OutcomeSkip},
+		{"", core.OutcomeError},
+		{"unknown", core.OutcomeError},
+	} {
+		res := core.TestResult{TRID: tr.ID, Checks: map[string]core.Outcome{"cap": tc.input}}
+		v := verdictByItem(New().GradeTR(context.Background(), tr, res, nil), "check:cap")
+		if v == nil || v.Outcome != tc.want {
+			t.Errorf("input %q: got %+v, want %q", tc.input, v, tc.want)
+		}
+	}
+}
