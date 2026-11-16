@@ -96,40 +96,7 @@ func writeJUnit(w io.Writer, r core.Report, hardwareAtRoot bool) error {
 		}
 		ts := juSuite{Name: name}
 		for _, v := range byLevel[lvl] {
-			name := v.Item
-			if v.Scenario != "" {
-				name += " [" + v.Scenario + "]"
-			}
-			tc := juCase{Name: name, Classname: core.ExecutionLabel(v.TR, v.Variant), Time: secs(v.DurationS)}
-			props := &juProps{}
-			if v.Scenario != "" {
-				props.add("scenario", v.Scenario)
-			}
-			if v.Expected != "" {
-				props.add("expected", v.Expected)
-			}
-			if v.Actual != "" {
-				props.add("actual", v.Actual)
-			}
-			if a := artifactsByExecution[core.ExecutionKey{TR: v.TR, Variant: v.Variant, Scenario: v.Scenario}]; a != "" {
-				props.add("artifacts", a)
-			}
-			if len(props.Property) > 0 {
-				tc.Properties = props
-			}
-			switch v.Outcome {
-			case core.OutcomeFail:
-				tc.Failure = &juMsg{Message: v.Reason}
-				ts.Failures++
-			case core.OutcomeError:
-				tc.Error = &juMsg{Message: v.Reason}
-				ts.Errors++
-			case core.OutcomeSkip:
-				tc.Skipped = &juMsg{Message: v.Reason}
-				ts.Skipped++
-			}
-			ts.Tests++
-			ts.Cases = append(ts.Cases, tc)
+			addVerdict(&ts, v, artifactsByExecution)
 		}
 		root.Suites = append(root.Suites, ts)
 	}
@@ -202,6 +169,87 @@ func writeJUnit(w io.Writer, r core.Report, hardwareAtRoot bool) error {
 	}
 	_, err := io.WriteString(w, "\n")
 	return err
+}
+
+// writeFlatJUnit emits the verdicts in one suite for consumers that read only the first suite.
+func writeFlatJUnit(w io.Writer, r core.Report) error {
+	for _, v := range r.Verdicts {
+		if v.TR == "" || v.Item == "" {
+			return fmt.Errorf("flat JUnit: verdict requires a test requirement ID and item")
+		}
+		if !v.Outcome.Valid() {
+			return fmt.Errorf("flat JUnit: unsupported outcome %q for %s / %s", v.Outcome, v.TR, v.Item)
+		}
+	}
+	artifacts := map[core.ExecutionKey]string{}
+	for _, e := range r.Executions {
+		if len(e.Artifacts) > 0 {
+			artifacts[core.ExecutionKey{TR: e.TR, Variant: e.Variant, Scenario: e.Scenario}] = join(e.Artifacts)
+		}
+	}
+	ts := juSuite{Name: "verdicts"}
+	for _, v := range r.Verdicts {
+		addVerdict(&ts, v, artifacts)
+		tc := &ts.Cases[len(ts.Cases)-1]
+		tc.Name = core.ExecutionLabel(v.TR, v.Variant) + " / " + tc.Name
+		if tc.Properties == nil {
+			tc.Properties = &juProps{}
+		}
+		tc.Properties.add("harness.tr_id", v.TR)
+		tc.Properties.add("harness.item", v.Item)
+		if v.Variant != "" {
+			tc.Properties.add("harness.variant", v.Variant)
+		}
+	}
+	root := juSuites{Name: "csi-cert-harness", Properties: runProperties(r), Suites: []juSuite{ts}, Tests: ts.Tests, Failures: ts.Failures, Errors: ts.Errors, Skipped: ts.Skipped}
+	root.Properties.add("harness.checkup_junit_profile_version", "1")
+	if _, err := io.WriteString(w, xml.Header); err != nil {
+		return err
+	}
+	enc := xml.NewEncoder(w)
+	enc.Indent("", "  ")
+	if err := enc.Encode(root); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, "\n")
+	return err
+}
+
+func addVerdict(ts *juSuite, v core.Verdict, artifacts map[core.ExecutionKey]string) {
+	name := v.Item
+	if v.Scenario != "" {
+		name += " [" + v.Scenario + "]"
+	}
+	tc := juCase{Name: name, Classname: core.ExecutionLabel(v.TR, v.Variant), Time: secs(v.DurationS)}
+	props := &juProps{}
+	if v.Scenario != "" {
+		props.add("scenario", v.Scenario)
+	}
+	if v.Expected != "" {
+		props.add("expected", v.Expected)
+	}
+	if v.Actual != "" {
+		props.add("actual", v.Actual)
+	}
+	if a := artifacts[core.ExecutionKey{TR: v.TR, Variant: v.Variant, Scenario: v.Scenario}]; a != "" {
+		props.add("artifacts", a)
+	}
+	if len(props.Property) > 0 {
+		tc.Properties = props
+	}
+	switch v.Outcome {
+	case core.OutcomeFail:
+		tc.Failure = &juMsg{Message: v.Reason}
+		ts.Failures++
+	case core.OutcomeError:
+		tc.Error = &juMsg{Message: v.Reason}
+		ts.Errors++
+	case core.OutcomeSkip:
+		tc.Skipped = &juMsg{Message: v.Reason}
+		ts.Skipped++
+	}
+	ts.Tests++
+	ts.Cases = append(ts.Cases, tc)
 }
 
 // runProperties is deliberately small and stable. JUnit consumers use these

@@ -123,7 +123,7 @@ results for submission:
   --verbose
 ```
 
-The output directory contains `report.junit.xml`, `report.json`, `report.md`,
+The output directory contains `report.junit.xml`, `report.junit.flat.xml`, `report.json`, `report.md`,
 and `run.log`. `run.log` contains harness log messages and stdout/stderr from
 the kube-burner and kube-burner-ocp subprocesses. virtbench output is included
 through the harness logger. During a run, progress messages show completed and
@@ -132,6 +132,11 @@ queued test lists. Submit `report.junit.xml` and `report.json` together;
 the JUnit file carries the clean/degraded/incomplete summary and points to the
 JSON file for incident details. Include `run.log` and the work directory's
 tool-generated result artifacts as supporting evidence.
+
+`report.junit.flat.xml` contains one suite of graded verdicts for consumers that
+read only the first JUnit suite. Its [Checkup JUnit profile](docs/checkup-junit-profile.md)
+defines the case identity, outcomes and compatibility rules. Use the grouped
+report and JSON for complete environment and certification evidence.
 
 The JUnit root properties include `harness.status`, `harness.health`,
 `harness.certifiable`, `harness.incidents_present`,

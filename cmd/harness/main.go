@@ -629,8 +629,13 @@ func writeReportFiles(outputDir string, rep core.Report, attestations []core.Att
 	}); err != nil {
 		return err
 	}
-	return safefs.WriteWriterAtomic(filepath.Join(outputDir, "report.junit.xml"), 0o600, func(w io.Writer) error {
+	if err := safefs.WriteWriterAtomic(filepath.Join(outputDir, "report.junit.xml"), 0o600, func(w io.Writer) error {
 		return (report.JUnitExporter{}).Export(w, rep)
+	}); err != nil {
+		return err
+	}
+	return safefs.WriteWriterAtomic(filepath.Join(outputDir, "report.junit.flat.xml"), 0o600, func(w io.Writer) error {
+		return (report.JUnitExporter{FlatVerdicts: true}).Export(w, rep)
 	})
 }
 
