@@ -1,12 +1,14 @@
 # 0004. SLA threshold secret handling: encrypted-in-repo, shared symmetric key
 
-- **Status:** Superseded by [ADR-0017](0017-thresholds-are-publicly-accessible.md)
+- **Status:** Accepted (mechanism deferred)
 - **Date:** 2026-08-23
 
 > Historical decision. ADR-0017 establishes that SLA thresholds are public and
 > may be committed in plaintext. The threshold confidentiality and encryption
-> requirements below are superseded. Backend credential handling remains in
-> ADR-0005.
+> requirements below are superseded and no longer apply. Backend credential
+> handling remains in ADR-0005.
+
+Superseded by [ADR-0017](0017-thresholds-are-publicly-accessible.md).
 
 ## Context
 

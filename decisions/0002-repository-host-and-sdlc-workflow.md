@@ -18,9 +18,10 @@ publication is governed by [ADR-0017](0017-thresholds-are-publicly-accessible.md
 - Keep tool-agnostic instructions in `AGENTS.md`, a thin `CLAUDE.md` wrapper,
   and a `skills/` workflow for design → implementation → e2e. These stay internal
   under [ADR-0010](0010-ci-scripts-and-multi-host.md).
-- Commit schemas and KB files, including public `thresholds.json`, as permitted
-  by ADR-0017. Keep credentials out of Git and review secret hygiene on every
-  change; backend credential handling is defined in ADR-0005.
+- Commit schemas and the public KB exports (`catalog.json` and
+  `thresholds.json`). Keep credentials and other sensitive KB artifacts out of
+  Git. SLA thresholds may be committed under ADR-0017; backend credential
+  handling is defined in ADR-0005.
 - Keep CI portable. ADR-0010 supersedes the original Makefile-owned logic with
   `ci/scripts/` implementations and thin local/GitLab/GitHub wrappers.
 
