@@ -123,4 +123,6 @@ spec:
                   [test]
                   FIOJOB
                   fio /tmp/fio.job --output-format=json --output=/tmp/fio_results.json
+                  FIO_EXIT_CODE=$?
+                  printf '%s\n' "$FIO_EXIT_CODE" > /tmp/fio_exit_code
                   echo "completed" > /tmp/fio_complete
