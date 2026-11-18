@@ -4,7 +4,9 @@
 - **Date:** 2026-08-23
 
 > Historical decision. ADR-0017 establishes that SLA thresholds are public and
-> may be committed in plaintext. The restrictions below no longer apply.
+> may be committed in plaintext. The threshold confidentiality and encryption
+> requirements below are superseded. Backend credential handling remains in
+> ADR-0005.
 
 ## Context
 
@@ -16,16 +18,18 @@ a practical way to obtain matching thresholds.
 
 The original decision was to commit real thresholds **only in a dedicated
 encrypted folder**, using a shared symmetric key held only by Red Hat developers.
-Commit fake `thresholds.example.json` and schemas in plaintext for other contributors.
+The proposal called for fake `thresholds.example.json` and schemas in plaintext
+for other contributors.
 
 At the time, encryption was not enabled. The decision called for selecting a
 mechanism, key custody, and rotation process before committing real thresholds;
 until then, real files were to stay outside tracked content and local
 `thresholds.json` was to remain gitignored.
 
-Decryption produces a local file explicitly supplied through `--thresholds` /
-`HARNESS_THRESHOLDS`; there is no implicit default. Stamp its provenance into
-every report. Never commit the key or ship it in the container.
+Under the proposal, decryption would produce a local file explicitly supplied
+through `--thresholds` / `HARNESS_THRESHOLDS`, with no implicit default. Its
+provenance would be stamped into every report. The key would not be committed
+or shipped in the container.
 
 ## Decision notes
 

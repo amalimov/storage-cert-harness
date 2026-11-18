@@ -17,7 +17,8 @@ cancellation and safe parallel execution.
 - **Data-driven execution:** a publishable catalog defines tests and a separate
   threshold file supplies gates (`--thresholds` /
   `HARNESS_THRESHOLDS`). New tests usually need data; new tools need adapters.
-  SLA thresholds are public under [ADR-0017](0017-thresholds-are-publicly-accessible.md).
+  SLA thresholds are public under
+  [ADR-0017](0017-thresholds-are-publicly-accessible.md).
   [ADR-0006](0006-adopt-kb-export-v2-contract.md) supersedes the original
   `tests-catalog.json`/assertion model with `catalog.json` and per-TR SLA/check
   items, and moves scheduling hints from the catalog to tools/plans.
