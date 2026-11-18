@@ -6,7 +6,7 @@
 ## Context
 
 The harness must accept new tools and tests without changing its core, grade
-runtime-supplied secret thresholds and functional results, and support
+runtime-supplied SLA thresholds and functional results, and support
 cancellation and safe parallel execution.
 
 ## Decision
@@ -15,8 +15,9 @@ cancellation and safe parallel execution.
   stage interfaces, never concrete tools. Integrations register in-tree at
   compile time; ship one static harness binary in a container.
 - **Data-driven execution:** a publishable catalog defines tests and a separate
-  runtime threshold file supplies secret gates (`--thresholds` /
+  threshold file supplies gates (`--thresholds` /
   `HARNESS_THRESHOLDS`). New tests usually need data; new tools need adapters.
+  SLA thresholds are public under [ADR-0017](0017-thresholds-are-publicly-accessible.md).
   [ADR-0006](0006-adopt-kb-export-v2-contract.md) supersedes the original
   `tests-catalog.json`/assertion model with `catalog.json` and per-TR SLA/check
   items, and moves scheduling hints from the catalog to tools/plans.

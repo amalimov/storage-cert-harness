@@ -14,8 +14,9 @@ not satisfy the container delivery chosen in ADR-0001/0003.
   `Containerfile`. `make build` still produces a development binary.
 - **Registry:** `quay.io/eco-special-projects/storage-cert-harness`, initially
   tagged with a 12-character Git SHA and `:main` for default-branch pushes.
-- **No secrets:** supply real thresholds at runtime via `--thresholds` /
-  `HARNESS_THRESHOLDS`; never bake thresholds or encryption keys into the image.
+- **Runtime configuration:** load thresholds via `--thresholds` /
+  `HARNESS_THRESHOLDS`; do not bake run-specific configuration or backend
+  credentials into the image. SLA thresholds are public under ADR-0017.
 - **Release checks:** MRs build and scan without publishing. Default-branch
   publication requires both Trivy and Dive to pass (ADR-0010).
 - **Original packaging:** build a static Go binary with `CGO_ENABLED=0`, offline
@@ -49,5 +50,5 @@ multi-architecture manifests, disconnected mirroring, Helm/OLM, and live cluster
 smoke remain separate follow-ups.
 
 Related: [ADR-0010](0010-ci-scripts-and-multi-host.md),
-[ADR-0004](0004-threshold-secret-handling.md),
+[ADR-0017](0017-thresholds-are-publicly-accessible.md),
 [ECOPROJECT-5274](https://redhat.atlassian.net/browse/ECOPROJECT-5274).

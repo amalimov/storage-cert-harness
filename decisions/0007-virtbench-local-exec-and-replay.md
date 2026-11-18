@@ -44,7 +44,7 @@ scenario engine.
 
 In-cluster execution and CSV-detail capture remain follow-ups. Cleanup was
 initially manual; [ADR-0009](0009-scoped-setup-run-group-individual.md) records
-shared setup and cleanup. Threshold encryption remains separate.
+shared setup and cleanup. Threshold publication is governed by ADR-0017.
 
 Related: [ECOPROJECT-5331](https://redhat.atlassian.net/browse/ECOPROJECT-5331),
 [ADR-0006](0006-adopt-kb-export-v2-contract.md).
