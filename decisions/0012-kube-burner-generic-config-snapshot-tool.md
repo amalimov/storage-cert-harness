@@ -20,9 +20,9 @@ VM/snapshot templates.
 - `replicas` is the VM count; optional `snapshot_count` is the total snapshot
   count and defaults to `replicas`. For more snapshots than VMs, render sequential
   jobs, each creating at most one snapshot per VM and waiting before the next job.
-- Take the StorageClass from the selected backend. The external threshold bundle
-  supplies `snapshot_ready_time@p99`; commit no real SLA values. Parse milliseconds
-  and use shared unit-normalized grading.
+- Take the StorageClass from the selected backend. The threshold bundle supplies
+  `snapshot_ready_time@p99`; thresholds may be committed in the clear under
+  ADR-0017. Parse milliseconds and use shared unit-normalized grading.
 
 ## Decision notes
 
@@ -38,10 +38,10 @@ VM/snapshot templates.
 Include cluster-free parser fixtures alongside embedded runtime assets.
 
 The test requires OpenShift Virtualization, CDI, a compatible StorageClass, and
-a VolumeSnapshotClass. The production KB mapping and real threshold remain
-external to this repository.
+a VolumeSnapshotClass. The production KB mapping and threshold are maintained
+in the KB export.
 
 Related: [ADR-0003](0003-harness-architecture-ports-and-adapters.md),
-[ADR-0004](0004-threshold-secret-handling.md),
+[ADR-0017](0017-thresholds-are-publicly-accessible.md),
 [ADR-0006](0006-adopt-kb-export-v2-contract.md),
 [ADR-0008](0008-scenario-table-and-unit-normalization.md).

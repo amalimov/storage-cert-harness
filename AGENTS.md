@@ -12,8 +12,8 @@ The **storage certification test harness** orchestrates upstream storage/virt
 test tools against an OpenShift cluster, grades results against per-Test-
 Requirement SLA gates and functional checks, and emits a certification report.
 Written in **Go** (single static binary, shipped as a container). It consumes
-the KB export **v2.0 two-file contract** — `catalog.json` (publishable) +
-`thresholds.json` (sensitive), joined on TR id (ADR-0006). See `decisions/` for
+the KB export **v2.0 two-file contract** — `catalog.json` and public
+`thresholds.json`, joined on TR id (ADR-0006, ADR-0017). See `decisions/` for
 the "why".
 
 - Module: `github.com/openshift-storage-cert/storage-cert-harness`

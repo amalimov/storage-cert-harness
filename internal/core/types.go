@@ -202,7 +202,7 @@ type TestRequirement struct {
 	ChecksStatus   string  `json:"checks_status,omitempty"`
 	ChecksCount    int     `json:"checks_count,omitempty"`
 	SLAs           []SLA   `json:"sla,omitempty"`    // catalog metric descriptors
-	Bars           []SLA   `json:"-"`                // thresholds bars (sensitive; joined at run time)
+	Bars           []SLA   `json:"-"`                // public grading bars joined at run time
 	Checks         []Check `json:"checks,omitempty"` // catalog check descriptors (ADR-0013)
 
 	// ParamSpec is the catalog-declared param spec (required/default) per name.

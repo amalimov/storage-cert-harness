@@ -44,8 +44,8 @@ YAML adds a dependency; the loaders live in `internal/plan` and
 
 Kubernetes Secret resolution was deferred pending a Kubernetes client: preserve
 its reference shape and return a clear unsupported error until implemented.
-Threshold encryption is governed by
-[ADR-0004](0004-threshold-secret-handling.md); file references can later point
-at decrypted files.
+Backend credential references remain separate from SLA thresholds; threshold
+encryption described in [ADR-0004](0004-threshold-secret-handling.md) was
+superseded by ADR-0017.
 
 Related: [ECOPROJECT-5273](https://redhat.atlassian.net/browse/ECOPROJECT-5273).

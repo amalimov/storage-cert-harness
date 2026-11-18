@@ -44,7 +44,8 @@ Cluster-free scenario tests cover different result formats. All tools share unit
 conversion; explained skips expose unsupported metrics without claiming a pass.
 
 Multiple scales within one TR invocation, external storage/Prometheus telemetry,
-in-cluster execution, and threshold encryption are outside this decision.
+in-cluster execution, and threshold publication are outside this decision;
+threshold publication is governed by ADR-0017.
 ADR-0007's execution/CSV follow-ups remain; shared setup is addressed by ADR-0009.
 
 Related: [ADR-0003](0003-harness-architecture-ports-and-adapters.md),

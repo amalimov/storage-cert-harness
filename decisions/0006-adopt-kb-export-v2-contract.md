@@ -10,7 +10,7 @@ functional checks. The original single-assertion test model cannot express it.
 
 ## Decision
 
-- **Two files, joined by TR ID:** publishable `catalog.json` and sensitive
+- **Two files, joined by TR ID:** publishable `catalog.json` and
   `thresholds.json`. Each has `schema_version: "2.0"`, sorted
   `test_requirements[]`, and provenance (`kb_git_commit`, `kb_commit_date`,
   `generated_date`). Loaders validate version and unique IDs; `kb.Join` requires
@@ -43,18 +43,20 @@ functional checks. The original single-assertion test model cannot express it.
 - **TR-centric model (chosen):** matches the export and preserves TR identity;
   requires replacing the old model.
 - **Synthetic tests per criterion:** smaller initial change, but loses TR identity.
-- **Single merged KB file:** removes the join but breaks the publication boundary.
+- **Single merged KB file:** removes the join but changes the established v2.0
+  contract and provenance model. Its original concern about a public/private
+  publication boundary was superseded by ADR-0017.
 
 ### Consequences
 
-The join detects stale/mismatched exports while separating publishable metadata
-from secret gates.
+The join detects stale or mismatched exports while keeping catalog metadata and
+SLA thresholds in separate files. Both files are publishable under ADR-0017.
 
 Update catalog, threshold, report, and plan schemas together. Loaders perform
-structural checks; full JSON Schema enforcement at runtime is deferred, as are
-Kubernetes Secret resolution and threshold encryption.
+structural checks; full JSON Schema enforcement at runtime is deferred, as is
+Kubernetes Secret resolution for backend credentials.
 
 This refines [ADR-0003](0003-harness-architecture-ports-and-adapters.md) and
-[ADR-0005](0005-test-plans-and-backend-config.md), retaining
-[ADR-0004](0004-threshold-secret-handling.md)'s secret rules.
+[ADR-0005](0005-test-plans-and-backend-config.md). Threshold secrecy described
+in [ADR-0004](0004-threshold-secret-handling.md) was superseded by ADR-0017.
 Related: [ECOPROJECT-5273](https://redhat.atlassian.net/browse/ECOPROJECT-5273).

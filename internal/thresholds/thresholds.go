@@ -1,7 +1,6 @@
-// Package thresholds loads and validates the runtime-supplied sensitive
-// thresholds.json — the "what passing means" file (sla numbers + full check
-// definitions). It is never committed in the clear; the harness receives it via
-// --thresholds / HARNESS_THRESHOLDS. See decisions/0004, 0006, and 5273.
+// Package thresholds loads and validates the public thresholds.json grading
+// bundle. The harness receives it via --thresholds / HARNESS_THRESHOLDS. See
+// decisions/0006 and 0017.
 package thresholds
 
 import (
@@ -15,9 +14,9 @@ import (
 // SupportedSchemaVersion is the export schema this build understands.
 const SupportedSchemaVersion = "2.0"
 
-// TR is one thresholds per-TR record: the sensitive numeric bars for a TR. Bars
-// may be when-scoped (multiple per metric, disjoint). Post-ADR-0013 thresholds
-// carries no checks (they moved to the catalog). List order is preserved.
+// TR is one thresholds per-TR record. Bars may be when-scoped (multiple per
+// metric, disjoint). Post-ADR-0013 thresholds carries no checks (they moved to
+// the catalog). List order is preserved.
 type TR struct {
 	ID  string     `json:"id"`
 	SLA []core.SLA `json:"sla,omitempty"`

@@ -86,8 +86,8 @@ substitute for live smoke).
 | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | Catch regressions across **all** catalog automations (smoke scale) on a real OCP+CNV cluster | Full Level-3 certification scale or HA/fencing (`TR-VIRT-007`) |
 | Run on contributor on-demand and optional daily schedule when open PRs had activity in 24h | Running on every PR commit, on PR open, or on push to `main` |
-| Exclusive, safe use of a shared or dedicated CI cluster                                      | Storing real threshold bars or kubeconfig in git               |
-| Deterministic preflight, minimal plan params, cleanup on all exit paths                      | Publishing graded reports with partner SLA secrets             |
+| Exclusive, safe use of a shared or dedicated CI cluster                                      | Storing kubeconfig or backend credentials in git                |
+| Deterministic preflight, minimal plan params, cleanup on all exit paths                      | Publishing customer run reports in git                          |
 
 ## Related work and Jira traceability
 
@@ -228,11 +228,11 @@ fork workflows. Required behavior:
 
    Adjust the string if the canonical GitHub org/repo name changes; document the
    value in `docs/ci.md`.
-3. **Environment `live-smoke`** — store `CI_CLUSTER_KUBECONFIG`,
-   `HARNESS_THRESHOLDS_JSON`, and `HARNESS_BACKENDS_YAML` as **environment
-   secrets**, not plain repo secrets exposed to every workflow. Restrict
-   deployment branches limited to upstream (PR jobs use environment only when
-   same-repo PR rules are satisfied).
+3. **Environment `live-smoke`** — store `CI_CLUSTER_KUBECONFIG` and any backend
+   credential values as **environment secrets**, not plain repo secrets exposed
+   to every workflow. Read public thresholds and catalog files from the
+   repository. Restrict deployment branches to upstream (PR jobs use the
+   environment only when same-repo PR rules are satisfied).
 4. **Do not** pass cluster secrets via `secrets: inherit` on the top-level `CI`
    workflow for fork-visible jobs; the live-smoke reusable workflow (if any)
    should reference `environment: live-smoke` only on the guarded job.
@@ -518,16 +518,17 @@ a bespoke network connector; do not depend on it for live smoke.
 
 ## 3. Storing cluster and harness configuration in CI
 
-Never commit kubeconfig, backend passwords, or private `thresholds.json` exports.
+Never commit kubeconfig, backend passwords, or customer run reports. SLA
+thresholds are public and may be committed under ADR-0017.
 
-### Protected variables / secrets
+### CI inputs and protected variables
 
 | Name                               | Format                         | Used for                                                                                      |
 | ---------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------- |
 | `CI_CLUSTER_KUBECONFIG`            | Base64-encoded kubeconfig file | API access; write to `$(mktemp)` mode `0600`, `trap` delete                                   |
-| `HARNESS_THRESHOLDS_JSON`          | Raw JSON string                | Write to `work/thresholds.json` (or path mounted in container)                                |
-| `HARNESS_BACKENDS_YAML`            | Raw YAML                       | CI cluster backend (`storage_class`, `snapshot_class`, array creds) → `work/backends.ci.yaml` |
-| `HARNESS_CATALOG_JSON`             | Optional if not in repo        | Only if catalog must stay private; default use git `catalog.json`                             |
+| `thresholds-smoke.json`            | Public JSON file               | Tracked in `ci/config/smoke/`; staged to `work/harness-run-thresholds.json`                   |
+| `HARNESS_BACKENDS_YAML`            | Raw YAML                       | CI cluster backend (`storage_class`, `snapshot_class`, credential references) → `work/backends.ci.yaml` |
+| `catalog.json`                     | Public JSON file               | Read from the repository as the catalog input                                                 |
 | `KUBECTL_INSECURE_SKIP_TLS_VERIFY` | `true` / `false`               | Lab clusters with custom CA                                                                   |
 | `REGISTRY_*` / Quay robot          | Existing publish secrets       | Pull image if not using artifact tarball                                                      |
 
@@ -914,7 +915,8 @@ On GitHub Actions **timeout** or **cancel**:
 `ci/scripts/run-harness/live-cluster-smoke.sh`:
 
 1. Source `ci-utils.sh`; `ci_log_init live-cluster-smoke`
-2. Materialize secrets to `work/` (thresholds, backends, kubeconfig)
+2. Stage public thresholds and backend configuration in `work/`; materialize
+   only kubeconfig and any credential values from protected environment data
 3. `acquire_smoke_lease` / `release_smoke_lease` + cleanup `trap`
 4. Load image from `dist/harness-image.tar` or `podman load` / pull Quay tag for SHA
 5. Invoke same `podman run ... harness run` as `run-image-tests.sh`

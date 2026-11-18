@@ -57,9 +57,10 @@ dependency-free and preserving KB provenance and existing grading.
 
 ### Consequences
 
-Reports may show runtime thresholds alongside measurements. This does not relax
-[ADR-0004](0004-threshold-secret-handling.md)'s prohibition on committing real
-thresholds or change [ADR-0006](0006-adopt-kb-export-v2-contract.md)'s input split.
+Reports may show runtime thresholds alongside measurements. Real thresholds may
+be committed in the clear under
+[ADR-0017](0017-thresholds-are-publicly-accessible.md); the two-file input split
+in [ADR-0006](0006-adopt-kb-export-v2-contract.md) remains.
 
 Signing/tamper evidence, badge scoring, a strict cumulative level ladder, and
 cross-suite certification remain outside scope.

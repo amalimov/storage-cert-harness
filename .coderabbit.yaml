@@ -12,8 +12,11 @@ path_instructions:
   - path: internal/tools/**
     instructions: |
       Flag hardcoded numeric SLA or threshold values in Go sources (not testdata/).
+      SLA values are public and belong in the KB thresholds bundle (ADR-0017);
+      this is a data-ownership rule, not a secrecy rule.
       Every new tool package must include a golden-file parser test (*_test.go plus testdata/).
-      Do not put real SLA numbers in this tree; they belong in the runtime thresholds bundle.
+      Tool adapters must consume gates from the thresholds bundle instead of
+      embedding gate values in source.
   - path: "internal/{orchestrator,grader,stages,core,kb}/**"
     instructions: |
       Architectural changes should reference an ADR under decisions/. Flag PRs that

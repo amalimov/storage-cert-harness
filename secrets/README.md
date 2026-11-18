@@ -1,17 +1,9 @@
-# secrets/
+# Legacy secrets directory
 
-Reserved for the **encrypted SLA thresholds folder** decided in
-[ADR-0004](../decisions/0004-threshold-secret-handling.md). The mechanism
-(git-crypt vs SOPS+age vs transcrypt, key custody, rotation) is **not yet
-implemented**.
+SLA threshold encryption described in ADR-0004 was superseded by ADR-0017.
+Real SLA thresholds are public and are maintained in the repository's
+`thresholds.json`; this directory is not used to store threshold files.
 
-Rules until then:
-
-- **No real SLA numbers anywhere in this repo**, including here, until the
-  encryption mechanism is in place.
-- Only ciphertext will ever be committed under this folder; the decrypted output
-  goes to `secrets/plain/`, which is gitignored.
-- The symmetric key is held by Red Hat developers only and is never committed or
-  baked into the container image.
-
-For development now, use the fake `thresholds.example.json` at the repo root.
+Do not commit credentials or other sensitive values here. Backend credentials
+must use the references and handling described in ADR-0005. The ignored
+`secrets/plain/` path remains only to avoid tracking any legacy local files.

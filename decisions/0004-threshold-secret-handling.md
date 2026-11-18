@@ -3,25 +3,35 @@
 - **Status:** Accepted (mechanism deferred)
 - **Date:** 2026-08-23
 
+> Historical decision. ADR-0017 establishes that SLA thresholds are public and
+> may be committed in plaintext. The threshold confidentiality and encryption
+> requirements below are superseded and no longer apply. Backend credential
+> handling remains in ADR-0005.
+
+Superseded by [ADR-0017](0017-thresholds-are-publicly-accessible.md).
+
 ## Context
 
-The harness needs real SLA thresholds at runtime, but they must never be
-published in plaintext, code, or readable Git history. Developers also need a
-practical way to obtain matching thresholds.
+At the time, the harness needed real SLA thresholds at runtime while keeping
+them out of plaintext, code, and readable Git history. Developers also needed
+a practical way to obtain matching thresholds.
 
 ## Decision
 
-Real thresholds may be committed **only in a dedicated encrypted folder**, using
-a shared symmetric key held only by Red Hat developers. Commit fake
-`thresholds.example.json` and schemas in plaintext for other contributors.
+The original decision was to commit real thresholds **only in a dedicated
+encrypted folder**, using a shared symmetric key held only by Red Hat developers.
+The proposal called for fake `thresholds.example.json` and schemas in plaintext
+for other contributors.
 
-**Encryption is not yet enabled.** Select a mechanism, key custody, and rotation
-process before committing any real thresholds. Until then, keep real files
-outside tracked content and gitignore the local `thresholds.json`.
+At the time, encryption was not enabled. The decision called for selecting a
+mechanism, key custody, and rotation process before committing real thresholds;
+until then, real files were to stay outside tracked content and local
+`thresholds.json` was to remain gitignored.
 
-Decryption produces a local file explicitly supplied through `--thresholds` /
-`HARNESS_THRESHOLDS`; there is no implicit default. Stamp its provenance into
-every report. Never commit the key or ship it in the container.
+Under the proposal, decryption would produce a local file explicitly supplied
+through `--thresholds` / `HARNESS_THRESHOLDS`, with no implicit default. Its
+provenance would be stamped into every report. The key would not be committed
+or shipped in the container.
 
 ## Decision notes
 
@@ -35,11 +45,10 @@ every report. Never commit the key or ship it in the container.
 
 ### Consequences
 
-Ciphertext remains in history permanently: a later key leak can expose old
-versions. The selected tool must support per-file encryption and documented
-rotation. Tool selection (git-crypt, SOPS+age, or transcrypt), custody, and the
-relationship between the canonical KB and encrypted copies/exporter remain open.
-Partner threshold delivery is outside this decision.
+The original proposal noted that ciphertext would remain in history and a later
+key leak could expose old versions. Tool selection, custody, and the relationship
+between the canonical KB and encrypted copies/exporter were left open. Partner
+threshold delivery was outside that decision.
 
 Related: [ECOPROJECT-5273](https://redhat.atlassian.net/browse/ECOPROJECT-5273),
 [ADR-0002](0002-repository-host-and-sdlc-workflow.md).

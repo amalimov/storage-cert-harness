@@ -24,8 +24,9 @@ work and re-grading of saved runs.
 - **Registry keys exactly match `automation_tool`:** register
   `virtbench datasource-clone`, and each later scenario under its own KB name.
   Share helpers without adding scenario dispatch to the orchestrator.
-- Construct commands from params/backend data, never threshold values. Fixtures
-  contain measurements, never real SLA gates.
+- Construct commands from params/backend data, never threshold values, so
+  workload inputs stay separate from grading criteria. Fixtures contain
+  measurements, not grading gates; this separation is not for threshold secrecy.
 
 ## Decision notes
 
@@ -44,7 +45,7 @@ scenario engine.
 
 In-cluster execution and CSV-detail capture remain follow-ups. Cleanup was
 initially manual; [ADR-0009](0009-scoped-setup-run-group-individual.md) records
-shared setup and cleanup. Threshold encryption remains separate.
+shared setup and cleanup. Threshold publication is governed by ADR-0017.
 
 Related: [ECOPROJECT-5331](https://redhat.atlassian.net/browse/ECOPROJECT-5331),
 [ADR-0006](0006-adopt-kb-export-v2-contract.md).

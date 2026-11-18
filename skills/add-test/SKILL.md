@@ -109,7 +109,8 @@ wiring (example catalog **trimmed**, plan(s), Makefile targets, blank import in
   contract).
 - `sla: []` (to-be-validated) → grade **native-only** for now, or author bars in the
   KB from the measured run (`/refine-tr`) then export.
-- ⚠️ **Never** put real SLA numbers in the harness repo or its history (ADR-0002/0004).
+- Real SLA thresholds are public and may be committed under ADR-0017. Keep
+  credentials and other sensitive KB artifacts out of the repository.
 
 ## Phase 9 — Live full-flow run
 
@@ -122,8 +123,8 @@ wiring (example catalog **trimmed**, plan(s), Makefile targets, blank import in
 - Change params via plan overrides; prove they took effect (the tool echoes them in
   `jobSummary.workloadFlags`) and re-run.
 - Ensure GC/teardown ran; remove stray host output dirs.
-- Update docs; commit with the `Assisted-by:` trailer; keep thresholds out of harness
-  history.
+- Update docs; commit with the `Assisted-by:` trailer; keep credentials and
+  other sensitive artifacts out of harness history.
 
 ---
 
@@ -132,7 +133,8 @@ wiring (example catalog **trimmed**, plan(s), Makefile targets, blank import in
 - `docs/harness-and-kb-data-flow.md` — the two-repo contract
 - `docs/adapter-authoring.md` — the adapter how-to (don't duplicate it here)
 - `docs/kube-burner-dv-clone-output.md` — per-tool output reference template
-- ADRs: 0003 (architecture), 0006 (KB v2.0 contract), 0004 (secret handling)
+- ADRs: 0003 (architecture), 0006 (KB v2.0 contract), 0017 (public thresholds),
+  0005 (backend credentials)
 
 ## Maintenance
 

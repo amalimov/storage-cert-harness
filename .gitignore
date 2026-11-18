@@ -1,4 +1,5 @@
-# Decrypted output of the future encrypted secrets folder (decisions/0004).
+# Legacy local path from the threshold-encryption proposal superseded by
+# decisions/0017. Keep ignored to avoid tracking any existing local files.
 /secrets/plain/
 
 # Real storage backend configs may carry inline credentials (dev only) or point
