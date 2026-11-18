@@ -1,5 +1,5 @@
 {
-  "_comment": "FAKE numbers for development only. Real SLA values are NEVER committed in the clear (see decisions/0004). The real thresholds.json is gitignored and delivered at test time.",
+  "_comment": "FAKE sample for development only. Real SLA thresholds are public and may be committed under ADR-0017.",
   "schema_version": "2.0",
   "provenance": {
     "kb_git_commit": "tr-virt-019-as-authored",

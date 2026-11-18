@@ -43,7 +43,9 @@ functional checks. The original single-assertion test model cannot express it.
 - **TR-centric model (chosen):** matches the export and preserves TR identity;
   requires replacing the old model.
 - **Synthetic tests per criterion:** smaller initial change, but loses TR identity.
-- **Single merged KB file:** removes the join but breaks the publication boundary.
+- **Single merged KB file:** removes the join but changes the established v2.0
+  contract and provenance model. Its original concern about a public/private
+  publication boundary was superseded by ADR-0017.
 
 ### Consequences
 

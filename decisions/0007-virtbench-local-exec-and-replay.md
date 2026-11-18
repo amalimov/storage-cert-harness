@@ -24,8 +24,9 @@ work and re-grading of saved runs.
 - **Registry keys exactly match `automation_tool`:** register
   `virtbench datasource-clone`, and each later scenario under its own KB name.
   Share helpers without adding scenario dispatch to the orchestrator.
-- Construct commands from params/backend data, never threshold values. Fixtures
-  contain measurements, never real SLA gates.
+- Construct commands from params/backend data, never threshold values, so
+  workload inputs stay separate from grading criteria. Fixtures contain
+  measurements, not grading gates; this separation is not for threshold secrecy.
 
 ## Decision notes
 

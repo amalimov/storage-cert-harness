@@ -698,10 +698,10 @@ until repository variable `CI_LIVE_SMOKE_ENABLED` is set to `true` and the
 
 Today's other jobs use hosted GitHub runners (no cluster). The **live-smoke** job
 (planned; see design doc below) runs against a real OpenShift cluster using the
-harness smoke plan. It will use GitHub environment secrets for
-`CI_CLUSTER_KUBECONFIG` and `HARNESS_THRESHOLDS_JSON`. Never echo them (`set +x`);
-write kubeconfig to a `0600` temp file and delete it in `trap`. Do not artifact
-full graded reports that contain real SLA bars.
+harness smoke plan. It will use the tracked smoke threshold bundle and a GitHub
+environment secret for `CI_CLUSTER_KUBECONFIG`. Never echo the kubeconfig; write
+it to a `0600` temp file and delete it in `trap`. Do not artifact full graded
+reports that may contain customer run data.
 
 Design: [storage-cert-harness-ci-smoke-test.md](design/storage-cert-harness-ci-smoke-test.md)
 (in this repository).
@@ -766,8 +766,9 @@ before merge, not a separate auto-trigger.
 1. Dedicated workflow with **`schedule`**, **`workflow_dispatch`**, and
    **`issue_comment`** only — **never** `pull_request`, `push`, or
    `pull_request_target` for cluster access.
-2. Store kubeconfig, thresholds, and CI backends as **environment secrets** on
-   `live-smoke`, deployment branch `main` on upstream — not shared via broad
+2. Store kubeconfig and any backend credential values as **environment secrets**
+   on `live-smoke`, deployment branch `main` on upstream. Read public thresholds
+   from the repository; do not share cluster credentials via broad
    `secrets: inherit` on the default CI workflow.
 3. Job `if` includes the canonical repository guard (update the org/repo string if
    the GitHub home changes).

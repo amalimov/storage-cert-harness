@@ -50,7 +50,7 @@ func Join(cat *catalog.Doc, th *thresholds.Doc) ([]core.TestRequirement, error) 
 		if !ok {
 			return nil, fmt.Errorf("TR %q present in catalog but missing from thresholds", c.ID)
 		}
-		tr.Bars = t.SLA // sensitive numeric bars; descriptors + checks come from the catalog
+		tr.Bars = t.SLA // public numeric bars; descriptors + checks come from the catalog
 		out = append(out, tr)
 	}
 	for id := range thByID {

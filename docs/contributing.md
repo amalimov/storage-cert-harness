@@ -16,7 +16,9 @@ osac-project/osac-workspace, adapted for a single Go repo):
 
 - Feature branches; open a PR into the default branch.
 - AI-assisted commits carry an `Assisted-by:` trailer.
-- Nothing secret in commits — ever (ADR-0002 / ADR-0004).
+- Do not commit credentials or other sensitive artifacts. Public SLA thresholds
+  may be committed under ADR-0017; backend credential handling is defined in
+  ADR-0005.
 
 ## Local checks before pushing
 

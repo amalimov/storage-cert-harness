@@ -1,5 +1,5 @@
 {
-  "_comment": "FAKE numbers for development only. Real SLA values are NEVER committed in the clear (see decisions/0004). The real thresholds.json is gitignored and delivered at test time. This file MUST share schema_version + provenance.kb_git_commit with catalog.example.json so they join.",
+  "_comment": "FAKE numbers for development only. Real SLA thresholds are public and may be committed under ADR-0017. This sample MUST share schema_version + provenance.kb_git_commit with catalog.example.json so they join.",
   "schema_version": "2.0",
   "provenance": {
     "kb_git_commit": "0000000example",

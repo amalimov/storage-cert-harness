@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/openshift-storage-cert/storage-cert-harness/schemas/thresholds.schema.json",
   "title": "KB Thresholds Bundle (v2.0)",
-  "description": "Runtime-supplied SENSITIVE KB export: per-Test-Requirement sla[] numbers and full check definitions. Never committed in the clear (decisions/0004, 5273); delivered at test time only. Joins with catalog.json on id and shared provenance.kb_git_commit.",
+  "description": "Public KB export containing per-Test-Requirement SLA values and check definitions. May be committed in the clear under ADR-0017. Joins with catalog.json on id and shared provenance.kb_git_commit.",
   "type": "object",
   "required": ["schema_version", "provenance", "test_requirements"],
   "additionalProperties": true,

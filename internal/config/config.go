@@ -25,7 +25,7 @@ type Variant struct {
 // Config is the resolved configuration for a run.
 type Config struct {
 	CatalogPath    string
-	ThresholdsPath string // sensitive bundle; may be empty for catalog-only/list runs
+	ThresholdsPath string // public grading bundle; may be empty for catalog-only/list runs
 	WorkDir        string
 	Concurrency    int
 	Filter         Filter

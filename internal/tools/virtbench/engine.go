@@ -473,9 +473,9 @@ func (t teardown) Teardown(_ context.Context, rc *core.RunCtx, bag *core.Bag) er
 
 // datasourceCloneArgs builds the CLI for the datasource-clone family. The
 // boot-storm scenario is the same subcommand plus the --boot-storm flag; it reads
-// ONLY params/backend config — never a threshold/SLA value — so nothing sensitive
-// can reach a command line. resultsRoot is where virtbench must write results so
-// the collector can find them.
+// ONLY params/backend config — never a threshold/SLA value — to keep workload
+// inputs separate from grading criteria. resultsRoot is where virtbench must
+// write results so the collector can find them.
 func datasourceCloneArgs(bootStorm bool, nsPrefix string) func(rc *core.RunCtx, _ *core.Bag, tr core.TestRequirement, resultsRoot string) ([]string, error) {
 	return func(rc *core.RunCtx, _ *core.Bag, tr core.TestRequirement, resultsRoot string) ([]string, error) {
 		sc := storageClass(rc, tr)
