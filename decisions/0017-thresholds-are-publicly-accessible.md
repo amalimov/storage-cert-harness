@@ -22,6 +22,12 @@ publishable file alongside `catalog.json`; the encrypted-folder mechanism and
 shared-key custody described in ADR-0004 are no longer required. This
 **supersedes ADR-0004** (which remains recorded for history).
 
+Any earlier ADR language that treats SLA thresholds as confidential, forbids
+committing them in plaintext, or calls for threshold encryption is superseded
+and no longer applies, wherever it appears. This supersession is limited to SLA
+threshold confidentiality; backend credential protections in ADR-0005 and the
+two-file KB contract in ADR-0006 remain in force.
+
 Invariants preserved:
 
 - The v2.0 two-file contract (ADR-0006) is unchanged: `catalog.json` +
