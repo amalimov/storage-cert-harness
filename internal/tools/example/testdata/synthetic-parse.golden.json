@@ -1,0 +1,12 @@
+[
+  {
+    "tr_id": "EX-006",
+    "metrics": [
+      {
+        "name": "sample_value",
+        "value": 12,
+        "unit": "count"
+      }
+    ]
+  }
+]

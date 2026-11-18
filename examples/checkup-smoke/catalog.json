@@ -1,0 +1,19 @@
+{
+  "schema_version": "2.0",
+  "provenance": {"kb_git_commit": "checkup-smoke-fixture", "kb_commit_date": "2026-01-01", "generated_date": "2026-01-01"},
+  "test_requirements": [
+    {
+      "id": "EX-006", "title": "Example configurable measurement", "partner_level": 3,
+      "automation_tool": "example", "sla_status": "defined", "sla_count": 1,
+      "checks_status": "defined", "checks_count": 0,
+      "params": {"sample_value": {"default": 4}},
+      "sla": [{"metric": "sample_value", "type": "count", "unit": "count", "measured_by": ["example"]}]
+    },
+    {
+      "id": "EX-003", "title": "Example read throughput", "partner_level": 3,
+      "automation_tool": "example", "sla_status": "defined", "sla_count": 1,
+      "checks_status": "defined", "checks_count": 0,
+      "sla": [{"metric": "read_throughput", "type": "throughput", "unit": "MiB/s", "measured_by": ["example"]}]
+    }
+  ]
+}

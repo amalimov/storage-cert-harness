@@ -6,6 +6,7 @@
 // Bag contract (see decisions/0003):
 //   - provisioner writes  "namespace" (string)
 //   - runner       writes "job"       (string), reads "namespace"
+//   - runner writes "synthetic_results" ([]byte); collector reads it when present
 //   - teardown     reads  "namespace"
 package example
 
@@ -14,6 +15,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/openshift-storage-cert/storage-cert-harness/internal/core"
 	"github.com/openshift-storage-cert/storage-cert-harness/internal/registry"
@@ -29,8 +31,8 @@ var sampleResults []byte
 func init() {
 	registry.Register(stages.ToolIntegration{
 		Name:         "example",
-		Image:        "quay.io/example/harness-example:latest",         // overridable; fallback Containerfile only if no upstream image
-		Provides:     []string{"EX-001", "EX-002", "EX-003", "EX-004"}, // TR ids this integration runs
+		Image:        "quay.io/example/harness-example:latest",                   // overridable; fallback Containerfile only if no upstream image
+		Provides:     []string{"EX-001", "EX-002", "EX-003", "EX-004", "EX-006"}, // TR ids this integration runs
 		Preflight:    preflight{},
 		Provisioner:  provisioner{},
 		Runner:       runner{},
@@ -59,7 +61,26 @@ func (provisioner) Provision(_ context.Context, rc *core.RunCtx, bag *core.Bag, 
 
 type runner struct{}
 
-func (runner) Run(_ context.Context, rc *core.RunCtx, bag *core.Bag, _ []core.TestRequirement) (stages.RunHandle, error) {
+func (runner) Run(_ context.Context, rc *core.RunCtx, bag *core.Bag, trs []core.TestRequirement) (stages.RunHandle, error) {
+	for _, tr := range trs {
+		if tr.ID != "EX-006" {
+			continue
+		}
+		value, err := sampleValue(tr.Params["sample_value"])
+		if err != nil {
+			return stages.RunHandle{}, fmt.Errorf("EX-006 sample_value: %w", err)
+		}
+		var results rawResults
+		if err := json.Unmarshal(sampleResults, &results); err != nil {
+			return stages.RunHandle{}, fmt.Errorf("example: read sample results: %w", err)
+		}
+		results.Tests = append(results.Tests, rawTest{TR: tr.ID, Metrics: []core.Metric{{Name: "sample_value", Value: value, Unit: "count"}}})
+		data, err := json.Marshal(results)
+		if err != nil {
+			return stages.RunHandle{}, fmt.Errorf("example: encode sample results: %w", err)
+		}
+		bag.Set("synthetic_results", data)
+	}
 	ns, _ := core.GetAs[string](bag, "namespace")
 	job := "example-job-" + rc.RunID
 	bag.Set("job", job)
@@ -70,11 +91,15 @@ func (runner) Run(_ context.Context, rc *core.RunCtx, bag *core.Bag, _ []core.Te
 
 type collector struct{}
 
-func (collector) Collect(_ context.Context, _ *core.RunCtx, _ *core.Bag, h stages.RunHandle) (core.LogBundle, error) {
+func (collector) Collect(_ context.Context, _ *core.RunCtx, bag *core.Bag, h stages.RunHandle) (core.LogBundle, error) {
 	// A real collector would fetch pod logs / artifacts for h.ID.
+	data := sampleResults
+	if synthetic, ok := core.GetAs[[]byte](bag, "synthetic_results"); ok {
+		data = synthetic
+	}
 	return core.LogBundle{
 		Refs: []string{h.ID},
-		Data: map[string][]byte{"results.json": sampleResults},
+		Data: map[string][]byte{"results.json": data},
 	}, nil
 }
 
@@ -97,12 +122,32 @@ func (teardown) Teardown(_ context.Context, rc *core.RunCtx, bag *core.Bag) erro
 // TR id; a TR carries measured Metrics (for sla scoring) and/or Checks (checkID
 // -> native outcome, for capability/suite/scenario checks). See decisions/0006.
 type rawResults struct {
-	Tests []struct {
-		TR      string                  `json:"tr"`
-		Metrics []core.Metric           `json:"metrics,omitempty"`
-		Checks  map[string]core.Outcome `json:"checks,omitempty"`
-		Native  core.Outcome            `json:"native,omitempty"`
-	} `json:"tests"`
+	Tests []rawTest `json:"tests"`
+}
+
+type rawTest struct {
+	TR      string                  `json:"tr"`
+	Metrics []core.Metric           `json:"metrics,omitempty"`
+	Checks  map[string]core.Outcome `json:"checks,omitempty"`
+	Native  core.Outcome            `json:"native,omitempty"`
+}
+
+func sampleValue(value any) (float64, error) {
+	var n float64
+	switch v := value.(type) {
+	case int:
+		n = float64(v)
+	case int64:
+		n = float64(v)
+	case float64:
+		n = v
+	default:
+		return 0, fmt.Errorf("must be a number, got %T", value)
+	}
+	if math.IsInf(n, 0) || math.IsNaN(n) {
+		return 0, fmt.Errorf("must be finite")
+	}
+	return n, nil
 }
 
 // ParseResults converts the example tool's JSON output into normalized results.

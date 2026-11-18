@@ -1,0 +1,8 @@
+schema_version: "1"
+name: checkup-csi-smoke
+description: Offline example tests for development of the Checkup integration.
+concurrency: 1
+select:
+  ids:
+    - EX-006
+    - EX-003
