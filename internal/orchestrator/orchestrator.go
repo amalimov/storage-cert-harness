@@ -711,16 +711,49 @@ func runJobWithTimeout(parent context.Context, j job, rc *core.RunCtx, g *grader
 		if err := ctx.Err(); err != nil {
 			return errTRs(j.trs, "preflight: "+err.Error()), nil
 		}
+
+		// Collect blocked TRs and warnings
+		blocked := map[string]string{} // TR ID -> reason
 		for _, f := range findings {
 			if rc.Logger != nil && f.Level == "warn" {
 				rc.Logger.Warn("preflight: " + f.Message)
 			}
 			if f.Level == "error" {
+				if len(f.BlocksTRs) == 0 {
+					// No specific TRs listed: blocks entire job
+					if rc.Logger != nil {
+						rc.Logger.Error("preflight: " + f.Message)
+					}
+					return errTRs(j.trs, "preflight failed: "+f.Message), nil
+				}
+				for _, trID := range f.BlocksTRs {
+					if blocked[trID] == "" {
+						blocked[trID] = f.Message
+					} else {
+						blocked[trID] += "; " + f.Message
+					}
+				}
 				if rc.Logger != nil {
 					rc.Logger.Error("preflight: " + f.Message)
 				}
-				return errTRs(j.trs, "preflight failed: "+f.Message), nil
 			}
+		}
+
+		// Partition: blocked TRs get skip verdicts, rest continue
+		if len(blocked) > 0 {
+			var runnable []core.TestRequirement
+			for _, tr := range j.trs {
+				if reason, isBlocked := blocked[tr.ID]; isBlocked {
+					verdicts = append(verdicts, skipTR(tr, "preflight: "+reason)...)
+				} else {
+					runnable = append(runnable, tr)
+				}
+			}
+
+			if len(runnable) == 0 {
+				return verdicts, nil // All blocked, skip rest of pipeline
+			}
+			j.trs = runnable // Continue with unblocked TRs only
 		}
 	}
 	if ti.Provisioner != nil {
@@ -829,6 +862,11 @@ func errTRs(trs []core.TestRequirement, reason string) []core.Verdict {
 
 func errTR(tr core.TestRequirement, reason string) []core.Verdict {
 	return itemVerdicts(tr, core.OutcomeError, reason)
+}
+
+// skipTR yields skip verdicts for a TR blocked by preflight
+func skipTR(tr core.TestRequirement, reason string) []core.Verdict {
+	return itemVerdicts(tr, core.OutcomeSkip, reason)
 }
 
 // itemVerdicts emits one verdict per scorable item (each sla + each check) with

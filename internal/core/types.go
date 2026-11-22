@@ -4,10 +4,12 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
 	"path/filepath"
+	"sync"
 )
 
 // Outcome is the result of scoring a single item after evaluation.
@@ -275,8 +277,9 @@ type Provenance struct {
 // checks use error, and checks that did not run use skip with a reason.
 // Warning findings are non-fatal and displayed as WARN by the CLI.
 type Finding struct {
-	Level   string `json:"level"` // info | error | skip | warn
-	Message string `json:"message"`
+	Level     string   `json:"level"` // info | error | skip | warn
+	Message   string   `json:"message"`
+	BlocksTRs []string `json:"-"` // TR IDs this error blocks; empty = blocks all in job
 }
 
 // Report is the certification run output.
@@ -443,6 +446,9 @@ type RunCtx struct {
 	// a verdict in the report can be traced to the bytes behind it. The
 	// receiver makes the paths relative to WorkDir.
 	RecordArtifacts func([]TestRequirement, []string)
+	// checkResults caches preflight check findings by checkID to avoid duplicate
+	// checks across tools. Used by CheckOnce().
+	checkResults *sync.Map
 }
 
 // ExecutionDir is the results root for one execution of one TR under one tool.
@@ -462,6 +468,25 @@ func (r *RunCtx) ExecutionDir(toolSubdir, trID, variant string) string {
 		leaf = trID + "." + variant
 	}
 	return filepath.Join(base, toolSubdir, leaf, r.RunID)
+}
+
+// CheckOnce executes a preflight check only if it hasn't been cached yet.
+// If a check with the given ID has already been executed, returns the cached
+// Finding. Otherwise executes the check function, caches the result, and returns
+// it. Thread-safe for concurrent use across scheduled tools.
+//
+// Use namespaced checkIDs to avoid collisions: "crd:<name>", "binary:<name>",
+// "storageclass:<name>", etc.
+func (r *RunCtx) CheckOnce(checkID string, check func(context.Context) Finding) Finding {
+	if r.checkResults == nil {
+		r.checkResults = &sync.Map{}
+	}
+	if cached, ok := r.checkResults.Load(checkID); ok {
+		return cached.(Finding)
+	}
+	result := check(context.Background())
+	r.checkResults.Store(checkID, result)
+	return result
 }
 
 // ToolOutput mirrors a subprocess stream to the terminal and, when configured,

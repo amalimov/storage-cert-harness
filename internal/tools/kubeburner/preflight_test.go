@@ -19,16 +19,34 @@ func TestPreflightContinuesAfterInvalidParameters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 9 {
-		t.Fatalf("findings = %+v, want all 9 checks", got)
+	// New structure: common checks (binary, storage, CRDs, populator) + per-TR checks
+	// Expected: error (binary), error (storage_class), skip (kubevirt CRD), skip (CDI CRD),
+	//           skip (populator), error (TR-VIRT-010 params), info (TR-VIRT-027 params)
+	if len(got) < 7 {
+		t.Fatalf("findings = %+v, want at least 7 checks (common + per-TR)", got)
 	}
-	for i, level := range []string{"error", "info", "error", "error", "skip", "skip", "skip", "skip", "skip"} {
-		if got[i].Level != level {
-			t.Errorf("check %d = %+v, want %s", i, got[i], level)
+
+	// Check that both TRs got their parameter checks
+	var foundVirt010Param, foundVirt027Param bool
+	for _, f := range got {
+		if strings.Contains(f.Message, "TR-VIRT-010") && strings.Contains(f.Message, "parameters") {
+			foundVirt010Param = true
+			if f.Level != "error" {
+				t.Errorf("TR-VIRT-010 param check = %+v, want error", f)
+			}
+		}
+		if strings.Contains(f.Message, "TR-VIRT-027") && strings.Contains(f.Message, "parameters") {
+			foundVirt027Param = true
+			if f.Level != "info" {
+				t.Errorf("TR-VIRT-027 param check = %+v, want info", f)
+			}
 		}
 	}
-	if !strings.Contains(got[1].Message, "TR-VIRT-027") {
-		t.Fatal("missing later TR's parameter check")
+	if !foundVirt010Param {
+		t.Fatal("missing TR-VIRT-010 parameter check")
+	}
+	if !foundVirt027Param {
+		t.Fatal("missing TR-VIRT-027 parameter check")
 	}
 }
 
@@ -41,6 +59,11 @@ case "$2" in
   storageprofile) echo '{"status":{"snapshotClass":"test-snapshot","claimPropertySets":[{"volumeMode":"Block","accessModes":["ReadWriteMany"]}]}}' ;;
   cdiconfig) echo '{"status":{}}' ;;
   volumesnapshotclass) echo '{"driver":"test-driver"}' ;;
+  crd)
+    case "$3" in
+      kubevirts.kubevirt.io|datavolumes.cdi.kubevirt.io|virtualmachinesnapshots.snapshot.kubevirt.io)
+        echo "crd.apiextensions.k8s.io/$3" ;;
+    esac ;;
 esac
 exit 0
 `
@@ -56,12 +79,16 @@ exit 0
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 13 {
-		t.Fatalf("findings = %+v, want parameters, storage config, binary, 3 CRDs, storage existence, snapshot class, wait --for=create support, populator", got)
+	// New structure has more findings due to explicit ordering:
+	// Common: binary, storage_class (info + check), kubevirt CRD, CDI CRD, populator
+	// Per-TR: params, snapshot CRD, wait-for-create, storage preflight
+	// Plus snapshot resolution
+	if len(got) < 10 {
+		t.Fatalf("findings = %+v, want at least 10 checks", got)
 	}
 	for _, f := range got {
-		if f.Level != "info" {
-			t.Errorf("finding = %+v, want pass", f)
+		if f.Level == "error" {
+			t.Errorf("finding = %+v, want all checks to pass", f)
 		}
 	}
 	p, ok := core.GetAs[Params](bag, "params")

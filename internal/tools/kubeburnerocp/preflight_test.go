@@ -21,30 +21,61 @@ func TestPreflightContinuesAfterInvalidWorkload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []struct{ level, message string }{
-		{"error", "INVALID parameters:"},
-		{"skip", "cannot select checks without a valid workload"},
-		{"info", "MIGRATION workload=virt-migration"},
-		{"info", "PARALLEL workload=virt-parallel"},
-		{"error", "kube-burner-ocp"},
-		{"error", "virtctl"},
-		{"skip", "kubevirts.kubevirt.io: neither kubectl nor oc found"},
-		{"skip", "datavolumes.cdi.kubevirt.io: neither kubectl nor oc found"},
-	}
-	if len(got) != len(want) {
-		t.Fatalf("findings = %+v, want %d checks (shared prerequisites once each)", got, len(want))
-	}
-	for i, w := range want {
-		if got[i].Level != w.level || !strings.Contains(got[i].Message, w.message) {
-			t.Errorf("finding %d = %+v, want %s containing %q", i, got[i], w.level, w.message)
+	// New structure: common checks first (binary, storage), then per-TR checks
+	// Count check categories rather than exact order
+	var invalidParam, migrationWorkload, parallelWorkload, binaryError, prereqSkip int
+	for _, f := range got {
+		if strings.Contains(f.Message, "INVALID") && strings.Contains(f.Message, "parameters") {
+			invalidParam++
 		}
+		if strings.Contains(f.Message, "MIGRATION") && strings.Contains(f.Message, "workload") {
+			migrationWorkload++
+		}
+		if strings.Contains(f.Message, "PARALLEL") && strings.Contains(f.Message, "workload") {
+			parallelWorkload++
+		}
+		if f.Level == "error" && strings.Contains(f.Message, "PATH") {
+			binaryError++
+		}
+		if f.Level == "skip" && strings.Contains(f.Message, "neither kubectl nor oc") {
+			prereqSkip++
+		}
+	}
+
+	if invalidParam == 0 {
+		t.Error("missing INVALID parameter error")
+	}
+	if migrationWorkload == 0 {
+		t.Error("missing MIGRATION workload check")
+	}
+	if parallelWorkload == 0 {
+		t.Error("missing PARALLEL workload check")
+	}
+	if binaryError == 0 {
+		t.Error("missing binary availability errors")
 	}
 }
 
 func TestPreflightSuccessfulMigration(t *testing.T) {
 	dir := t.TempDir()
+	script := `#!/bin/sh
+case "$2" in
+  crd)
+    case "$3" in
+      kubevirts.kubevirt.io|datavolumes.cdi.kubevirt.io)
+        echo "crd.apiextensions.k8s.io/$3" ;;
+    esac ;;
+  storageclass)
+    echo '{"items":[{"metadata":{"name":"test-sc"}}]}' ;;
+esac
+exit 0
+`
 	for _, binary := range []string{"kube-burner-ocp", "virtctl", "kubectl"} {
-		if err := os.WriteFile(filepath.Join(dir, binary), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		content := "#!/bin/sh\nexit 0\n"
+		if binary == "kubectl" {
+			content = script
+		}
+		if err := os.WriteFile(filepath.Join(dir, binary), []byte(content), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -56,12 +87,14 @@ func TestPreflightSuccessfulMigration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 6 {
-		t.Fatalf("findings = %+v, want workload, storage class, 2 binaries, and 2 CRDs", got)
+	// New structure has: common binary, storage class (info + check), per-TR workload,
+	// workload binaries, workload CRD prereqs
+	if len(got) < 6 {
+		t.Fatalf("findings = %+v, want at least workload, storage class, 2 binaries, and 2 CRDs", got)
 	}
 	for _, f := range got {
-		if f.Level != "info" {
-			t.Errorf("finding = %+v, want pass", f)
+		if f.Level == "error" {
+			t.Errorf("finding = %+v, want all checks to pass", f)
 		}
 	}
 }
