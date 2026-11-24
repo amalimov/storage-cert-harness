@@ -107,6 +107,23 @@ else
 	fail "/usr/bin/virtctl is missing or cannot run"
 fi
 
+echo "==> checking jq and ssh"
+if run_cmd /usr/bin/jq --version >/dev/null 2>&1; then
+	echo "  jq: present"
+else
+	fail "/usr/bin/jq is missing or cannot run"
+fi
+if run_cmd /usr/bin/ssh -V >/dev/null 2>&1; then
+	echo "  ssh: present"
+else
+	fail "/usr/bin/ssh is missing or cannot run"
+fi
+if run_cmd rpm -q jq openssh-clients >/dev/null 2>&1; then
+	echo "  jq and openssh-clients: recorded in RPM database"
+else
+	fail "jq or openssh-clients is missing from the RPM database"
+fi
+
 echo "==> checking /usr/bin/virtbench fio"
 if run_cmd env VIRTBENCH_REPO=/opt/virtbench-runtime /usr/bin/virtbench fio --help >/dev/null 2>&1; then
 	echo "  virtbench fio: present"

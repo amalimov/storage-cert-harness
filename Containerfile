@@ -13,16 +13,21 @@ FROM ${BUILD_IMAGE}
 ARG IMAGE_VERSION
 ARG HARNESS_VERSION
 USER 0
+
+# kube-burner-ocp hooks need jq and ssh; keep DNF history off layers.
+RUN --mount=type=tmpfs,target=/var/lib/dnf \
+  microdnf install -y jq-1.6-21.el9_9 openssh-clients-9.9p1-17.el9_9 \
+  && microdnf clean all
+
 LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
 LABEL io.storage-cert-harness.harness.version="${HARNESS_VERSION}"
 COPY bin/harness /usr/bin/
-COPY container-patches/virtbench/examples/utilities/ssh-pod.yaml /opt/virtbench-runtime/examples/utilities/ssh-pod.yaml
+COPY --chown=65532:65532 container-patches/virtbench/examples/utilities/ssh-pod.yaml /opt/virtbench-runtime/examples/utilities/ssh-pod.yaml
 COPY container-entrypoint.sh /usr/local/bin/
-# OS RPM versions come from BUILD_IMAGE; promote a new builder digest for CVE fixes (/var/lib/rpm kept for Trivy).
-RUN rm -rf /opt/virtbench-runtime/build /opt/virtbench-runtime/.github \
-  && mkdir -p /home/harness/.config /home/harness/.local/share/containers \
+# Promote a new builder digest for inherited OS RPM fixes. Keep /var/lib/rpm for Trivy.
+RUN mkdir -p /home/harness/.config /home/harness/.local/share/containers \
   && chmod 0755 /usr/local/bin/container-entrypoint.sh \
-  && chown -R 65532:65532 /opt/virtbench-runtime /home/harness
+  && chown -R 65532:65532 /home/harness
 ENV PATH="/opt/virtbench-venv/bin:${PATH}"
 ENV HOME=/home/harness
 ENV VIRTBENCH_REPO=/opt/virtbench-runtime

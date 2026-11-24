@@ -269,6 +269,9 @@ pinned native Hadolint release binary installed by `install-tools.sh`; CI uses
 the pinned Hadolint image from `CI_TOOLS_IMAGE`. The script also reports any
 privileged `USER 0` setup lines for context. Run image scans locally with
 `make image-build && make image-scan`.
+Dive allows 41 MiB of wasted bytes for the final UBI image; most of this is
+inherited RPM database history. The runtime `microdnf` install uses a temporary
+DNF history mount so its SQLite WAL is not duplicated in the final image.
 Trivy writes `dist/trivy-report.json`, `dist/trivy-report.txt`,
 `dist/trivy-secret-report.json`, `dist/trivy-misconfig-report.txt`, and
 `dist/sbom.cdx.json`; Dive writes
@@ -337,19 +340,21 @@ In the supported GitHub Actions flow, `image-push` runs automatically on
    after the `harness-binary` artifact).
 
 The `Containerfile` extends the digest-pinned **harness-builder** image
-(`FROM ${BUILD_IMAGE}`), adds `bin/harness`, the virtbench `ssh-pod.yaml` patch,
-and the entrypoint. It does **not** run `microdnf update` or re-copy the tool
-tree onto a second `RUNTIME_IMAGE` rootfs (that pattern duplicated UBI layers and
-failed Dive). It does not download, compile, or relabel the packaged tools.
+(`FROM ${BUILD_IMAGE}`), installs pinned `jq` and `openssh-clients`, and adds
+`bin/harness`, the virtbench `ssh-pod.yaml` patch, and the entrypoint. It does
+**not** run `microdnf update` or re-copy the tool tree onto a second
+`RUNTIME_IMAGE` rootfs (that pattern duplicated UBI layers and failed Dive).
+It does not download, compile, or relabel the packaged tools.
 `RUNTIME_IMAGE` in `images.env` must still match the builder base stream.
 Override `BUILD_IMAGE` in the environment only for local experiments;
 release CI uses the pinned digest from `images.env`.
 
 ### OS and RPM security updates
 
-**RPM versions in the shipped harness image come from the pinned `BUILD_IMAGE`
-digest.** harness-builder runs `microdnf update` when it is built; the harness
-runtime layer does not refresh OS packages again.
+**Inherited RPM versions in the shipped harness image come from the pinned
+`BUILD_IMAGE` digest.** The runtime layer installs version-pinned `jq` and
+`openssh-clients` and their dependencies; it does not refresh existing OS
+packages. The RPM database stays in the image for package inventory and Trivy.
 
 - To pick up **new RPM or UBI security fixes**, publish a new **harness-builder**
   from `storage-cert-harness-images`, record its digest, bump
